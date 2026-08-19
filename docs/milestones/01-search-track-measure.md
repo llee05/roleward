@@ -58,6 +58,8 @@ Each step should be small enough to complete as a separate pull request.
 
 ### 1. Confirm the product contract
 
+Status: complete. See the [Milestone 1 product contract](../product-contract.md).
+
 - Write the final role levels and application statuses as TypeScript constants.
 - Sketch the routes: `/login`, `/jobs`, `/jobs/[id]`, `/applications`,
   `/documents`, and `/dashboard`.

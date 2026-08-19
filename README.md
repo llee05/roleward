@@ -6,3 +6,4 @@ documents, tracking applications, and measuring progress.
 ## Roadmap
 
 - [Milestone 1: Search, track, and measure](docs/milestones/01-search-track-measure.md)
+- [Milestone 1 product contract](docs/product-contract.md)
