@@ -78,6 +78,22 @@ date. Submitted statuses may be corrected or changed to another submitted status
 but a submitted record cannot return to `saved`. A user who no longer wants an
 unsubmitted saved job should untrack it rather than mark it `withdrawn`.
 
+The database schema must make `status` non-null, constrain it to the constants
+above, and enforce the valid status/date combinations with a check equivalent to:
+
+```sql
+(status = 'saved' and applied_at is null)
+or (status <> 'saved' and applied_at is not null)
+```
+
+`applied_at` is an ISO 8601 calendar date (`YYYY-MM-DD`), stored as a PostgreSQL
+`date`, rather than a timestamp. It records the user's local calendar date of
+submission, whether initially defaulted or entered for an earlier application.
+
+Any tracked record can receive a CV or cover letter, including a saved job or a
+submitted application in any current status. Changing status never removes its
+documents.
+
 ## Application metrics
 
 `applied_at` is the source of truth for every submitted-application metric:
@@ -94,8 +110,9 @@ Changing a submitted application to `interview`, `offer`, `rejected`, or
 The status breakdown filters to `applied_at is not null` before grouping by current
 status. It has no `saved` segment and its segments always sum to the submitted
 total. The applications-over-time chart also uses the original `applied_at` date,
-with weekly buckets beginning on Monday; it never uses a status-change or update
-timestamp.
+with calendar-week buckets beginning on Monday. Because `applied_at` is a date and
+not an instant, bucketing does not apply a timezone conversion. The chart never
+uses a status-change or update timestamp.
 
 For example, one saved record and one rejected record with an application date
 produce a total of one and a breakdown of one rejected application.

@@ -54,31 +54,44 @@ export const APPLICATION_STATUS_DEFINITIONS = {
 
 export type SubmittedApplicationStatus = Exclude<ApplicationStatus, "saved">;
 
-export type ApplicationSubmission = {
+/** An ISO 8601 calendar date (`YYYY-MM-DD`), validated at the input boundary. */
+export type ApplicationDate = string;
+
+export type ApplicationSubmissionInput = {
   status: ApplicationStatus;
-  appliedAt: Date | string | null;
+  appliedAt: ApplicationDate | null;
 };
+
+export type ApplicationSubmission =
+  | {
+      status: "saved";
+      appliedAt: null;
+    }
+  | {
+      status: SubmittedApplicationStatus;
+      appliedAt: ApplicationDate;
+    };
 
 /**
  * A submitted application is counted only from its persisted `applied_at` value.
- * Status changes must not clear or replace that original timestamp, and a submitted
+ * Status changes must not clear or replace that original date, and a submitted
  * application must never be moved back to `saved`.
  */
 export function isSubmittedApplication(
-  application: Pick<ApplicationSubmission, "appliedAt">,
+  application: Pick<ApplicationSubmissionInput, "appliedAt">,
 ): boolean {
   return application.appliedAt !== null;
 }
 
 export function countSubmittedApplications(
-  applications: readonly Pick<ApplicationSubmission, "appliedAt">[],
+  applications: readonly Pick<ApplicationSubmissionInput, "appliedAt">[],
 ): number {
   return applications.filter(isSubmittedApplication).length;
 }
 
 export function hasValidSubmissionState(
-  application: ApplicationSubmission,
-): boolean {
+  application: ApplicationSubmissionInput,
+): application is ApplicationSubmission {
   const requiresAppliedAt =
     APPLICATION_STATUS_DEFINITIONS[application.status].requiresAppliedAt;
 
