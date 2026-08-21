@@ -37,7 +37,6 @@ foundation.
   - [ ] `dexie-export-import`
   - [ ] `zod`
   - [ ] `react-hook-form`
-  - [ ] `recharts`
 - [ ] Configure ESLint and formatting.
 - [ ] Configure Vitest, React Testing Library, and `fake-indexeddb`.
 - [ ] Configure Playwright with one application smoke test.

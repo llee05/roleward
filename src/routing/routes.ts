@@ -41,7 +41,7 @@ export const ROUTE_DEFINITIONS = {
   },
   dashboard: {
     pattern: ROUTES.dashboard,
-    purpose: "Review submitted totals, current statuses, and weekly progress.",
+    purpose: "Review the submitted total and current-status counts.",
   },
   settings: {
     pattern: ROUTES.settings,

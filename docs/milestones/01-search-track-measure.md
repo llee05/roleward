@@ -45,7 +45,7 @@ matching. Applications can still be updated manually in Milestone 1.
 - Role-level filters: internship, graduate, junior, and other
 - Application statuses: saved, applied, interview, offer, rejected, and withdrawn
 - Browser-local PDF or DOCX CV and cover-letter storage
-- Total application count, status breakdown, and applications-over-time chart
+- Total application count and current-status breakdown without a chart
 - Zod and React Hook Form validation
 - Vitest, React Testing Library, Playwright, and `fake-indexeddb` coverage
 - GitHub Actions and a Vercel deployment on a stable production origin
@@ -92,7 +92,7 @@ unambiguous.
 
 - Create the Next.js App Router project with strict TypeScript.
 - Add Tailwind CSS and shadcn/ui.
-- Add Zod, React Hook Form, Recharts, `dexie`, `dexie-react-hooks`, and
+- Add Zod, React Hook Form, `dexie`, `dexie-react-hooks`, and
   `dexie-export-import`.
 - Configure ESLint, Vitest, React Testing Library, `fake-indexeddb`, and
   Playwright.
@@ -218,7 +218,7 @@ orphaned documents.
 
 - Show total submitted applications.
 - Show counts by current submitted status.
-- Show applications by Monday-based week with Recharts.
+- Present the status counts as summary cards or a plain list, not a chart.
 - Add a useful zero state for an empty or saved-only workspace.
 - Derive aggregates reactively from IndexedDB application records using the
   original `appliedAt`; do not maintain a mutable counter.
@@ -279,7 +279,7 @@ stable Vercel URL.
 - [ ] A visitor can untrack or delete an application with confirmation; its job is
       retained and its related documents are removed.
 - [ ] A visitor can attach, download, and delete a browser-local CV or cover letter.
-- [ ] Total, status, and weekly statistics are correct.
+- [ ] The submitted total and current-status counts are correct.
 - [ ] Export and replacement import restore all records and document bytes.
 - [ ] Invalid or failed import, reset cancellation, and failed reset leave current
       data unchanged.

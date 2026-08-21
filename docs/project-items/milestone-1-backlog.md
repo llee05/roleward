@@ -391,25 +391,23 @@ application removal.
 ### 13. `[M1] Build the application statistics dashboard`
 
 **Task:** Derive reactive submitted totals, a submitted-only current-status
-breakdown, and Monday-based weekly application data from original `appliedAt`
-values, then render the chart with Recharts.
+breakdown from original `appliedAt` values, then render them as summary cards or a
+plain list without a chart.
 
 **Subtasks:**
 
 - [ ] Implement pure metric functions for submitted total, submitted-only status
-      breakdown, and weekly application counts.
+      breakdown.
 - [ ] Define submitted records solely by non-null `appliedAt` and exclude `saved`
       from every metric.
-- [ ] Bucket `YYYY-MM-DD` application dates into Monday-based calendar weeks
-      without timezone conversion.
-- [ ] Subscribe the dashboard to local application changes so totals and charts
+- [ ] Subscribe the dashboard to local application changes so totals and counts
       update without a refresh.
-- [ ] Render the submitted-total summary, status breakdown, and Recharts weekly
-      series.
+- [ ] Render the submitted total as a clear summary.
+- [ ] Render submitted-only status counts as accessible cards or a plain list.
 - [ ] Implement zero-submission, database-loading, read-error/retry, and populated
       dashboard states.
-- [ ] Test totals, breakdown sums, later status changes, deletion updates, week
-      boundaries, and persistence across refresh.
+- [ ] Test totals, breakdown sums, later status changes, deletion updates, and
+      persistence across refresh.
 
 **Done when:** Saved records are excluded, breakdown segments sum to the total,
 later statuses do not reduce counts, and zero/loading/error/populated states remain

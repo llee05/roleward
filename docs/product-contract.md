@@ -66,7 +66,7 @@ initialized workspace continue to `/dashboard`.
 | `/jobs/[id]` | Show one local job and let the user save it or mark its application as submitted. |
 | `/applications` | List saved jobs and submitted applications, open an in-page detail panel, and edit status or notes, untrack, or delete an application. |
 | `/documents` | Upload, list, download, and delete local CVs and cover letters associated with an application. |
-| `/dashboard` | Show the submitted total, submitted-only status breakdown, and applications by week. |
+| `/dashboard` | Show the submitted total and a submitted-only current-status breakdown. |
 | `/settings` | Show browser-storage information and provide backup, restore, sample-reset, and workspace-reset controls. |
 
 There are no protected routes or authentication redirects. Until workspace setup
@@ -206,10 +206,8 @@ Changing a submitted application to `interview`, `offer`, `rejected`, or
 
 The status breakdown filters to the same submitted subset before grouping by
 current status. It has no `saved` segment and its segments always sum to the
-submitted total. The applications-over-time chart also uses original `appliedAt`
-values, with calendar-week buckets beginning on Monday. Because `appliedAt` is a
-date and not an instant, bucketing does not apply a timezone conversion. The chart
-never uses a status-change or update timestamp.
+submitted total. The dashboard presents these values as summary cards or a plain
+list; Milestone 1 does not include a chart or time-series visualization.
 
 For example, one saved record and one rejected record with an application date
 produce a total of one and a breakdown of one rejected application.
@@ -228,7 +226,7 @@ heading visible where a workspace exists.
 | `/jobs/[id]` | Treat an ID absent from the local database as not found, with a link to `/jobs`. | Show a detail skeleton while IndexedDB opens and the job is queried. | Show retry for database/query failure; do not present it as not found. | Show job facts and exactly one action state: **Save job**, **Mark applied**, or a link to its tracked application. |
 | `/applications` | Explain that no jobs are tracked and link to `/jobs`. | Show row skeletons while the local query opens. | Show inline retry without discarding current view controls; identify failed writes. | Show saved and submitted rows with current status, company, role, and application date; selection opens the editor. |
 | `/documents` | If no application can receive a document, link to jobs/applications. Otherwise explain that no files are stored and show **Upload document**. | Show file-row skeletons and disable upload actions during reads/writes. | Preserve successful files and distinguish invalid file, quota, and database failures. | Show browser-local files with type, related application, upload date, download, and delete actions. |
-| `/dashboard` | When no record has `appliedAt`, show zero submissions and link to `/jobs`; saved jobs do not suppress this state. | Show skeletons for locally derived total, breakdown, and chart. | Show inline retry and do not present stale totals as current. | Show submitted total, submitted-only status breakdown, and weekly series derived from `appliedAt`. |
+| `/dashboard` | When no record has `appliedAt`, show zero submissions and link to `/jobs`; saved jobs do not suppress this state. | Show skeletons for the locally derived total and status counts. | Show inline retry and do not present stale totals as current. | Show the submitted total and submitted-only current-status counts as summary cards or a plain list. |
 | `/settings` | With no records, still show storage scope, backup/import, and reset guidance. | Disable affected controls and announce storage estimation, export, import, or reset progress. | Keep current data intact where possible and report persistence denial, invalid backup, quota, migration, or operation failure with the relevant recovery action. | Show origin-scoped storage details, persistence status, export/import controls, and confirmed sample/workspace reset actions. |
 
 Errors are announced accessibly and offer retry when the operation is safe to
