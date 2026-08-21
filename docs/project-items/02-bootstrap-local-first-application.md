@@ -1,14 +1,14 @@
 # GitHub Project item: Bootstrap the local-first application
 
-## Suggested fields
+## Project placement
 
 - **Title:** `[M1] Bootstrap the local-first Roleward application`
-- **Type:** Feature
-- **Status:** Ready
-- **Priority:** High
-- **Size:** Medium
-- **Milestone:** Milestone 1 — Search, track, and measure
-- **Suggested labels:** `foundation`, `frontend`, `local-first`
+- **Initial view:** Backlog
+- **Move to Development when:** implementation starts
+
+The project uses only two views. **Backlog** contains work that has not started;
+**Development** contains active work. Close the issue when its acceptance criteria
+are complete, so a separate completed view is unnecessary.
 
 ## Summary
 
