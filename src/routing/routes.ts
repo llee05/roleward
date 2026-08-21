@@ -20,7 +20,7 @@ export const ROUTE_DEFINITIONS = {
   home: {
     pattern: ROUTES.home,
     purpose:
-      "Choose a fresh or sample local workspace, or continue an existing one.",
+      "Start fresh, load a sample, restore, or continue a local workspace.",
   },
   jobs: {
     pattern: ROUTES.jobs,
@@ -32,7 +32,8 @@ export const ROUTE_DEFINITIONS = {
   },
   applications: {
     pattern: ROUTES.applications,
-    purpose: "Review tracked jobs and update application status or notes.",
+    purpose:
+      "Review tracked jobs; update status or notes; or remove an application.",
   },
   documents: {
     pattern: ROUTES.documents,

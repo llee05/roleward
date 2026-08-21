@@ -51,23 +51,23 @@ application** links the local workspace to one job. While that record has the
 `saved` status, the UI calls it a saved job and reporting does not count it as a
 submitted application.
 
-On first use, `/` offers **Start fresh** and **Load sample workspace**. Sample
-data is deterministic, is copied into that browser's database, and can then be
-edited like any other data. Seeding is idempotent and never overwrites an
-established workspace during an upgrade. Returning visitors with an initialized
-workspace continue to `/dashboard`.
+On first use, `/` offers **Start fresh**, **Load sample workspace**, and **Restore
+backup**. Sample data is deterministic, is copied into that browser's database,
+and can then be edited like any other data. Seeding is idempotent and never
+overwrites an established workspace during an upgrade. Returning visitors with an
+initialized workspace continue to `/dashboard`.
 
 ## Routes
 
 | Route | Responsibility |
 | --- | --- |
-| `/` | Explain browser-local storage and let a first-time visitor start fresh or load sample data; otherwise continue to the existing workspace. |
+| `/` | Explain browser-local storage and let a first-time visitor start fresh, load sample data, or restore a backup; otherwise continue to the existing workspace. |
 | `/jobs` | Search by title or company, filter by role level, and open the manual-job form. Search state lives in `q`, `level`, and `page` query parameters. |
 | `/jobs/[id]` | Show one local job and let the user save it or mark its application as submitted. |
-| `/applications` | List saved jobs and submitted applications, open an in-page detail panel, and edit status or notes. |
+| `/applications` | List saved jobs and submitted applications, open an in-page detail panel, and edit status or notes, untrack, or delete an application. |
 | `/documents` | Upload, list, download, and delete local CVs and cover letters associated with an application. |
 | `/dashboard` | Show the submitted total, submitted-only status breakdown, and applications by week. |
-| `/settings` | Show local-storage information and provide backup, restore, sample-reset, and workspace-reset controls. |
+| `/settings` | Show browser-storage information and provide backup, restore, sample-reset, and workspace-reset controls. |
 
 There are no protected routes or authentication redirects. Until workspace setup
 is complete, a direct visit to any data-bearing route returns to `/`. Every
@@ -83,10 +83,10 @@ tables:
 
 | Table | Contents and invariants |
 | --- | --- |
-| `jobs` | Stable UUID, job facts, role level, source, and creation date. Title/company substring search filters the small local result set; ordinary Dexie indexes do not provide arbitrary substring search. |
+| `jobs` | Stable UUID, job facts, role level, provenance (`sample` or `manual`), optional source URL, and creation date. Title/company substring search filters the small local result set; ordinary Dexie indexes do not provide arbitrary substring search. |
 | `applications` | Stable UUID, a unique indexed `jobId`, current status, original `appliedAt`, notes, and update date. There is at most one application for a job in a workspace. |
 | `documents` | Stable UUID, `applicationId`, kind, filename, media type, size, upload date, and an unindexed file `Blob`. |
-| `settings` | Durable workspace metadata such as initialization and sample-data versions. It is distinct from disposable UI preferences in `localStorage`. |
+| `settings` | A required `workspace` record containing initialization, mode (`personal` or `sample`), sample-data version, and Roleward backup-format version. It is distinct from disposable UI preferences in `localStorage`. |
 
 IndexedDB does not enforce foreign keys, cascades, or the status/date rule. UI code
 does not write to raw Dexie tables directly: repository functions validate runtime
@@ -95,43 +95,59 @@ behavior. Imports pass through the same validation. Record IDs use
 `crypto.randomUUID()` so exports remain portable and future sync is not blocked
 by auto-incremented keys.
 
-Each released schema change adds a new Dexie version and upgrade function; a
-released migration is not rewritten. Upgrade tests begin from every supported
-older version. A failed migration must leave the previous data intact and show a
-recoverable migration error rather than silently reseeding or resetting it.
+Each future schema change adds a new Dexie version and upgrade function; a released
+migration is not rewritten. Version 1 tests fresh creation and reopen because no
+older released schema exists. Starting with version 2, fixture-based upgrade tests
+begin from every supported older version. A failed migration must leave previous
+data intact and show a recoverable migration error rather than silently reseeding
+or resetting it. A version change closes stale connections; a blocked upgrade asks
+the visitor to close other Roleward tabs and retry.
 
 ## Documents
 
-Documents are PDF or DOCX files of at most 10 MiB. The browser validates size,
-extension, and available media type before a repository write; an empty media type
-uses the validated extension fallback. The file blob and metadata are stored
-together, and the blob is never indexed. Downloads use a temporary object URL that
-is revoked after use. Previewing or parsing document contents is out of scope.
+Documents are PDF or DOCX files of at most 10 MiB. Extension matching is
+case-insensitive: `.pdf` pairs with `application/pdf`, and `.docx` pairs with
+`application/vnd.openxmlformats-officedocument.wordprocessingml.document`. An
+empty media type may fall back to a valid extension; any other media type or a
+non-empty extension/media-type mismatch is rejected before a repository write.
+The file blob and metadata are stored together, and the blob is never indexed.
+Downloads use a temporary object URL that is revoked after use. Previewing or
+parsing document contents is out of scope.
 
-Deleting an application and its documents is one Dexie transaction. A failed or
-quota-exceeded write leaves existing records intact and shows an actionable error.
-“Stored locally” does not imply encryption or protection from other users of the
-same browser profile.
+The in-page application detail exposes **Untrack** for a saved record and **Delete
+application** for a submitted record. Both require confirmation, keep the job in
+the catalogue, and delete the application and its documents in one Dexie
+transaction. Deleting a submitted application removes it from all metrics. A
+failed or quota-exceeded write leaves existing records intact and shows an
+actionable error. “Stored locally” does not imply encryption or protection from
+other users of the same browser profile.
 
 ## Backup, restore, and reset
 
 The settings page exports the complete database, including document blobs, as one
 downloadable, versioned `.roleward-backup.json` file using
-`dexie-export-import`. The backup identifies its Roleward format version and
-database version so future releases can migrate or reject it deliberately. The UI
-warns that the downloaded file contains unencrypted application data and documents.
+`dexie-export-import`. The add-on supplies its format and database metadata; the
+required `workspace` settings record supplies Roleward's backup-format version.
+Import validates both so future releases can migrate or reject the file
+deliberately. The UI warns that the download contains unencrypted application data
+and documents.
 
 Restore is a replacement, not an implicit merge. Before changing current data, the
-app reads and validates the backup metadata, references, and every record; shows
-record counts; reports an invalid or unsupported file; and asks for confirmation.
-A successful restore replaces the workspace atomically. A cancelled or failed
-restore leaves the current workspace unchanged and usable.
+app checks the add-on header, imports into a disposable staging database, validates
+the required Roleward marker plus every record and reference, shows record counts,
+reports an invalid or unsupported file, and asks for confirmation. The staging
+database is then discarded. Restore explicitly enables `clearTablesBeforeImport`
+and keeps Dexie transactions enabled; it never uses `noTransaction`. A successful
+restore therefore replaces the workspace in one transaction. A cancelled or
+failed restore leaves the current workspace unchanged and usable.
 
 Reset is destructive and requires confirmation. The UI recommends exporting a
 backup first. **Reset workspace** returns to first-run setup. **Reset sample
-workspace** replaces the current data with the current deterministic sample only
-after the same confirmation. Browser-storage persistence is best effort, so export
-is the supported recovery and transfer mechanism.
+workspace** appears only in sample mode and replaces current data with the current
+deterministic sample after the same confirmation. Each reset changes all four
+tables in one transaction; a failure rolls back to the prior workspace.
+Browser-storage persistence is best effort, so export is the supported recovery
+and transfer mechanism.
 
 ## Role levels
 
@@ -170,9 +186,10 @@ wants an unsubmitted saved job should untrack it rather than mark it `withdrawn`
 
 `appliedAt` is an ISO 8601 calendar-date string (`YYYY-MM-DD`). It records the
 user's local submission date, whether initially defaulted or entered for an older
-application. The discriminated TypeScript type describes valid stored values, and
-the repository and import boundaries call `hasValidSubmissionState` to reject
-invalid runtime combinations. Status transitions also preserve an existing
+application. The discriminated TypeScript type and `hasValidSubmissionState`
+enforce the status/null pairing only. A shared runtime schema separately rejects
+unknown statuses, malformed strings, and impossible calendar dates at every form,
+repository, and import boundary. Status transitions also preserve an existing
 `appliedAt` and reject submitted-to-saved changes.
 
 Any tracked record can receive a CV or cover letter, including a saved job or a
@@ -206,7 +223,7 @@ heading visible where a workspace exists.
 
 | Route | Empty | Loading | Error | Populated |
 | --- | --- | --- | --- | --- |
-| `/` | Explain local storage and offer **Start fresh** or **Load sample workspace**. | Show workspace database opening or migration progress and disable setup actions. | Explain storage unavailability or migration failure without offering a destructive reset as the first action. | Continue to `/dashboard`; the setup screen is not shown over existing data. |
+| `/` | Explain browser-local storage and offer **Start fresh**, **Load sample workspace**, or **Restore backup**. | Show workspace database opening, import, or migration progress and disable setup actions. | Explain invalid backup, storage unavailability, blocked upgrade, or migration failure without offering a destructive reset as the first action. | Continue to `/dashboard`; the setup screen is not shown over existing data. |
 | `/jobs` | Explain either that the catalogue is empty or that no jobs match. Offer **Add a job**, and **Clear filters** for no matches. | Keep heading and filters visible; show result-card skeletons while the database/query opens. | Show an inline retry while preserving URL filters; distinguish quota/write failure on add. | Show paginated job cards, active filters, **Clear filters**, and **Add a job**. |
 | `/jobs/[id]` | Treat an ID absent from the local database as not found, with a link to `/jobs`. | Show a detail skeleton while IndexedDB opens and the job is queried. | Show retry for database/query failure; do not present it as not found. | Show job facts and exactly one action state: **Save job**, **Mark applied**, or a link to its tracked application. |
 | `/applications` | Explain that no jobs are tracked and link to `/jobs`. | Show row skeletons while the local query opens. | Show inline retry without discarding current view controls; identify failed writes. | Show saved and submitted rows with current status, company, role, and application date; selection opens the editor. |

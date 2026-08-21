@@ -18,9 +18,9 @@ export const LOCAL_PERSISTENCE = {
  * a Dexie index would not by itself provide that search behavior.
  */
 export const LOCAL_DATABASE_SCHEMA = {
-  jobs: "id, roleLevel, source, createdAt",
+  jobs: "id, roleLevel, createdAt",
   applications: "id, &jobId, status, appliedAt, updatedAt",
-  documents: "id, applicationId, kind, uploadedAt",
+  documents: "id, applicationId, uploadedAt",
   settings: "key",
 } as const;
 
@@ -34,8 +34,26 @@ export const BROWSER_STORAGE_POLICY = {
 /** Version of the deterministic sample copied into a new sample workspace. */
 export const SAMPLE_DATA_VERSION = 1 as const;
 
+export const WORKSPACE_SETTINGS_KEY = "workspace" as const;
+
+export const WORKSPACE_MODES = ["personal", "sample"] as const;
+export type WorkspaceMode = (typeof WORKSPACE_MODES)[number];
+
+/**
+ * Stored in the required workspace settings record, so Dexie export/import
+ * carries Roleward compatibility metadata alongside its own format metadata.
+ */
 export const LOCAL_BACKUP_FORMAT = {
   name: "roleward-backup",
   version: 1,
   fileExtension: ".roleward-backup.json",
 } as const;
+
+export type WorkspaceSettingsRecord = {
+  key: typeof WORKSPACE_SETTINGS_KEY;
+  mode: WorkspaceMode;
+  initializedAt: string;
+  sampleDataVersion: number | null;
+  backupFormatName: typeof LOCAL_BACKUP_FORMAT.name;
+  backupFormatVersion: typeof LOCAL_BACKUP_FORMAT.version;
+};
