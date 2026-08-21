@@ -1,52 +1,50 @@
 export const ROUTES = {
-  login: "/login",
+  home: "/",
   jobs: "/jobs",
   job: "/jobs/[id]",
   applications: "/applications",
   documents: "/documents",
   dashboard: "/dashboard",
+  settings: "/settings",
 } as const;
 
 export type RouteName = keyof typeof ROUTES;
 export type RoutePattern = (typeof ROUTES)[RouteName];
-export type RouteAccess = "public" | "protected";
 
 type RouteDefinition = {
   pattern: RoutePattern;
-  access: RouteAccess;
   purpose: string;
 };
 
 export const ROUTE_DEFINITIONS = {
-  login: {
-    pattern: ROUTES.login,
-    access: "public",
-    purpose: "Sign up or sign in before entering the application.",
+  home: {
+    pattern: ROUTES.home,
+    purpose:
+      "Choose a fresh or sample local workspace, or continue an existing one.",
   },
   jobs: {
     pattern: ROUTES.jobs,
-    access: "protected",
     purpose: "Search and filter jobs, or start adding one manually.",
   },
   job: {
     pattern: ROUTES.job,
-    access: "protected",
     purpose: "Review one job, save it, or record a submitted application.",
   },
   applications: {
     pattern: ROUTES.applications,
-    access: "protected",
     purpose: "Review tracked jobs and update application status or notes.",
   },
   documents: {
     pattern: ROUTES.documents,
-    access: "protected",
-    purpose: "Upload and manage CVs and cover letters for applications.",
+    purpose: "Store and manage local CVs and cover letters for applications.",
   },
   dashboard: {
     pattern: ROUTES.dashboard,
-    access: "protected",
     purpose: "Review submitted totals, current statuses, and weekly progress.",
+  },
+  settings: {
+    pattern: ROUTES.settings,
+    purpose: "Export, import, inspect, or reset the browser-local workspace.",
   },
 } as const satisfies Record<RouteName, RouteDefinition>;
 
