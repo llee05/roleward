@@ -24,3 +24,4 @@ will follow.
 
 - [Milestone 1: Search, track, and measure](docs/milestones/01-search-track-measure.md)
 - [Milestone 1 product contract](docs/product-contract.md)
+- [Milestone 1 GitHub Project backlog](docs/project-items/milestone-1-backlog.md)
