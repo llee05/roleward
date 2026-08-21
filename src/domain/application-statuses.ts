@@ -73,7 +73,7 @@ export type ApplicationSubmission =
     };
 
 /**
- * A submitted application is counted only from its persisted `applied_at` value.
+ * A submitted application is counted only from its persisted `appliedAt` value.
  * Status changes must not clear or replace that original date, and a submitted
  * application must never be moved back to `saved`.
  */
