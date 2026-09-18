@@ -26,7 +26,8 @@ Roleward will be a static website hosted on **GitHub Pages**, built with:
 - **Tailwind CSS and shadcn/ui** for the interface.
 - **IndexedDB, Dexie, and dexie-react-hooks** for local CV files and application data.
 - **React Hook Form and Zod** for forms and validation.
-- **Gmail API and Google Identity Services** for browser-based email access.
+- **Gmail API and Google Identity Services**, plus **Microsoft Graph and MSAL**
+  for browser-based Gmail and Outlook access.
 - **Vitest, React Testing Library, and Playwright** for testing; **GitHub Actions**
   for checks and deployment.
 
@@ -39,11 +40,11 @@ CV files and tracked data stay in the browser's local database. Clearing site
 data can remove them; there is no automatic backup or cross-device access.
 GitHub hosts the website's built files, not your CVs or synced messages.
 
-Gmail is the initial email provider. Connection uses Google's authorization flow,
-and sync runs while the website is open. Reloading or an expired session requires
-reconnecting before another sync. No application backend is planned. The OAuth
-client must be configured separately, and broader public Gmail access may require
-Google verification; see the [email integration design](docs/tech-stack.md#gmail-integration).
+Gmail and Outlook (Outlook.com and Microsoft 365) connect directly from the browser.
+Update scans the past three calendar months while the website is open. Access
+and refresh tokens stay in memory; reconnect after reload or expiry. No backend
+or scheduled worker is required. Provider registrations must be configured
+separately; see the [email integration design](docs/tech-stack.md#email-update-pipeline).
 
 ## Run the prototype
 
@@ -56,28 +57,50 @@ npm run dev
 
 Open `http://localhost:5173/roleward/`. The workspace starts empty. Upload a CV,
 add an application, choose the version used, and visit Overview to see statistics.
-Data persists when you reload in the same browser. No Gmail setup is needed for
+Data persists when you reload in the same browser. No email setup is needed for
 these local features.
 
-## Optional Gmail setup
+## Optional email setup
 
-Copy `.env.example` to `.env.local` and set `VITE_GOOGLE_CLIENT_ID` to your public
-Google OAuth web client ID. Enable Gmail API in your Google Cloud project,
-configure the consent screen and test user, and authorize `http://localhost:5173`
-and your deployed origin. Restart Vite after changing configuration. Never add a
-client secret. See the [integration design](docs/tech-stack.md#gmail-integration).
+Copy `.env.example` to `.env.local`. Configure either provider or both, then
+restart Vite. Client IDs are public; never add a client secret.
 
-In Workspace, choose **Connect Gmail**, then **Sync now**. New threads appear in
-**Applications → Email review**. Confirm an application or move its emails to an
-existing one. Company, role, and submission date are entered during review;
-the prototype deliberately does not infer these from email wording. Only confirmed
-applications count toward statistics.
+**Gmail:** Set `VITE_GOOGLE_CLIENT_ID` to a Google OAuth web client ID. Enable
+Gmail API, configure the consent screen and test users, and authorize
+`http://localhost:5173` and the deployed origin. The requested permission is
+`gmail.readonly`. See [Gmail setup](docs/tech-stack.md#gmail-integration).
 
-Discovery checks up to 100 threads from the last 180 days matching application,
-interview, job-offer, or candidacy keywords. Previously tracked threads are also
-refreshed. Keyword discovery can miss emails; this is not a complete mailbox
-import. Sync is read-only and runs while the site is open. Reconnect after reload
-or token expiry.
+**Outlook:** Register an application in Microsoft Entra with support for
+organizational directories **and personal Microsoft accounts**. Set
+`VITE_MICROSOFT_CLIENT_ID` to its Application (client) ID. Under Authentication,
+add **Single-page application** redirect URIs:
+
+- `http://localhost:5173/roleward/outlook-redirect.html`
+- `https://llee05.github.io/roleward/outlook-redirect.html`
+
+Add Microsoft Graph **delegated** permissions `User.Read` and `Mail.Read`.
+Do not create a client secret or enable implicit grant. Work/school policies may
+require administrator consent. See [Outlook setup](docs/tech-stack.md#outlook-integration).
+
+In **Workspace**, select **Connect Gmail** and/or **Connect Outlook**, then
+**Update**. Update is also available in **Applications**. It scans all available
+result pages within the date window and processes emails locally:
+
+- Clear job-application confirmations become tracked database items automatically,
+  with company, role when found, and application date.
+- Explicit submission dates take priority; otherwise a confirmation's received date
+  is an estimate, labelled in application details. Check and correct these dates.
+- Ambiguous job correspondence goes to **Email review** and does not count in
+  statistics until confirmed. Replies in known conversations attach to their
+  existing application. Separate conversations can be merged manually.
+- Repeat updates preserve edits, avoid duplicate message imports, and respect
+  deleted applications. Cancel or failures keep records already imported.
+
+The [Update script](src/features/email/update.ts) uses conservative English
+patterns, not an AI service. It can miss unusual templates or misidentify fields;
+review extracted details. Unrelated message bodies are discarded. Large mailboxes
+can take time because the scan reads each message in the window. It does not
+fetch older emails or run in the background after closing the site.
 
 ## Checks and production build
 
@@ -93,21 +116,24 @@ npm run preview
 ```
 
 `npm run format` formats the repository. For a locally installed Chromium, set
-`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` when running browser tests. Automated Gmail
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` when running browser tests. Automated email
 tests use fixtures and never access a real mailbox.
 
 ## GitHub Pages
 
 The included GitHub Actions workflow checks the app and publishes `dist/` after
 successful pushes to `main`. Enable **Settings → Pages → Source: GitHub Actions**
-and set the repository variable `VITE_GOOGLE_CLIENT_ID` if using Gmail. Authorize
+and set repository variables `VITE_GOOGLE_CLIENT_ID` and/or
+`VITE_MICROSOFT_CLIENT_ID` for enabled providers. Authorize
 `https://llee05.github.io` in Google Cloud. The project URL is
 `https://llee05.github.io/roleward/`; hash routes preserve direct navigation and
-reload. For a custom domain, change Vite's base and the authorized origin.
+reload. Register the Outlook redirect URI above in Microsoft Entra. For a custom
+domain, change Vite’s base, the authorized Google origin, and the Microsoft redirect URI.
 
-The prototype and workflow are implemented locally; deployment and a real Gmail
-account still need external configuration and verification. Backup/restore,
-automatic field extraction, search, and job matching are not implemented.
+The prototype and workflow are implemented locally and tested with mailbox
+fixtures. Live Gmail/Outlook authorization and deployment still need external
+configuration and verification. Backup/restore, search, and job matching are not
+implemented.
 
 - [V1 product contract](docs/product-contract.md)
 - [Tech stack](docs/tech-stack.md)

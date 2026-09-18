@@ -11,10 +11,10 @@ implementation item. No item is assumed complete from the previous scope.
 
 ## Prototype progress
 
-The scaffold, revised code contracts, local features, Gmail review adapter,
+The scaffold, revised code contracts, local features, Gmail/Outlook adapters and automatic extraction,
 statistics, tests, and Pages workflow are implemented. Checklists below retain
-the full v1 delivery requirements: automatic extraction, failure-case coverage,
-real-provider validation, and deployment still need follow-through. The
+the full v1 delivery requirements: live-provider validation and deployment still need follow-through.
+Extraction, migration, retries, cancellation, and failed-write behavior have fixture coverage. The
 [README](../../README.md) describes the prototype's current limits.
 
 ## 1. Align domain contracts with the static architecture
@@ -24,8 +24,8 @@ real-provider validation, and deployment still need follow-through. The
       and workspace/sync metadata; remove the required jobs catalogue.
 - [ ] Align status/date rules with confirmed applications that may have unknown
       submission dates.
-- [ ] Apply the chosen Gmail browser integration and define import window and sync limits.
-- [ ] Plan Google OAuth client setup and test-user configuration for the Pages origin.
+- [ ] Apply the chosen Gmail and Outlook browser integrations and define import window and sync limits.
+- [ ] Plan Google and Microsoft OAuth client setup and test-user configuration for the Pages origin.
 - [ ] Align route metadata with hash routing and document browser-only data handling.
 
 **Done when:** Code declarations match v1 and the email design supports real
@@ -37,7 +37,7 @@ provider access while keeping CV files in the local database.
 
 - [ ] Scaffold React, Vite, strict TypeScript, Tailwind CSS, and shadcn/ui.
 - [ ] Add the contracted pages, React Router hash navigation, and `/roleward/` asset base.
-- [ ] Separate local repositories from the browser Gmail adapter; add no server runtime.
+- [ ] Separate local repositories from the browser email adapters; add no server runtime.
 - [ ] Configure validation, formatting, linting, type checks, and unit/browser tooling.
 - [ ] Document installation, development, test, and build commands.
 
@@ -76,9 +76,9 @@ are rejected, and failed operations preserve existing data.
 
 **Depends on:** Item 3.
 
-## 5. Connect and disconnect Gmail
+## 5. Connect and disconnect Gmail and Outlook
 
-- [ ] Implement Google Identity Services and Gmail read access per the tech stack.
+- [ ] Implement Google Identity Services/Gmail and MSAL/Microsoft Graph read access per the tech stack.
 - [ ] Show disconnected, connecting, connected, expired, and error states.
 - [ ] Require user-triggered reconnection after reload or token expiry.
 - [ ] Disconnect, clear in-memory authorization, and attempt revocation while
@@ -93,7 +93,7 @@ failures preserve the local workspace.
 
 ## 6. Sync application information and replies
 
-- [ ] Retrieve relevant Gmail messages on **Sync now** within the agreed import window.
+- [ ] Retrieve Gmail and Outlook messages on **Update** within the past three calendar months.
 - [ ] Identify company, role, submission date, and replies when supported by evidence.
 - [ ] Deduplicate by provider/account identifiers and associate replies with
       applications without merging solely on company name.
@@ -157,15 +157,15 @@ and preservation of existing data during failures.
 
 - [ ] Configure GitHub Actions to check and build with npm, then publish `dist/`
       to GitHub Pages from the default branch after checks pass.
-- [ ] Configure the `/roleward/` base and public Google client ID; authorize the
-      production JavaScript origin in Google Cloud.
+- [ ] Configure the `/roleward/` base and public Google and Microsoft client IDs; authorize the
+      production Google JavaScript origin and Microsoft SPA redirect URI.
 - [ ] Verify direct hash URLs, refresh, and asset loading on the Pages site.
 - [ ] Verify the complete journey with a real authorized mailbox.
-- [ ] Document Google setup, applicable verification requirements, sync limits,
+- [ ] Document Google and Microsoft setup, applicable verification requirements, sync limits,
       disconnect behavior, and local data storage and loss limitations.
 - [ ] Confirm CV files remain local and different browser workspaces are independent.
 
-**Done when:** The GitHub Pages site supports CV versions, real Gmail tracking, and
+**Done when:** The GitHub Pages site supports CV versions, real Gmail and Outlook tracking, and
 statistics, with reproducible setup instructions.
 
 **Depends on:** Item 9.

@@ -28,7 +28,7 @@ These instructions apply throughout the Roleward repository.
   compatibility, hash routing, and the `/roleward/` asset base.
 - Keep application data and CV files in IndexedDB through Dexie. Validate writes
   through repositories and use transactions for related changes.
-- Keep Gmail access read-only and tokens in memory. Never commit credentials,
+- Keep Gmail and Outlook access read-only and tokens in memory. Never commit credentials,
   personal CVs, mailbox contents, or local environment files. The OAuth client ID
   is public configuration.
 - Preserve CV versions independently of applications. Repeated email syncs must
@@ -36,7 +36,7 @@ These instructions apply throughout the Roleward repository.
 - Derive statistics from confirmed applications; exclude unreviewed email
   candidates and report unknown submission dates separately.
 - Keep setup instructions and implementation-status documentation accurate when
-  behavior changes. Distinguish fixture-tested functionality from live Gmail or
+  behavior changes. Distinguish fixture-tested functionality from live Gmail/Outlook or
   deployment verification.
 
 ## Validation

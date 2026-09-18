@@ -12,7 +12,7 @@
 Implemented and validated locally in the initial prototype. The scope and
 acceptance criteria below are satisfied by the scaffold, production build, and
 unit/browser checks. The prototype also implements the first local features and
-Gmail review flow; a live mailbox and GitHub Pages deployment still need external
+Gmail/Outlook Update flow; a live mailbox and GitHub Pages deployment still need external
 configuration. See the [README](../../README.md) to run it.
 
 ## Summary
@@ -24,7 +24,7 @@ and placeholder pages without implementing those features in this item.
 Follow the [v1 product contract](../product-contract.md),
 [tech stack](../tech-stack.md), and
 [delivery plan](../milestones/01-search-track-measure.md). The initial prototype now provides this scaffold and aligns the route, domain,
-and storage declarations. Live Gmail and Pages configuration remain external setup.
+and storage declarations. Live Gmail/Outlook and Pages configuration remain external setup.
 
 ## Scope
 
@@ -40,7 +40,7 @@ and storage declarations. Live Gmail and Pages configuration remain external set
       `/documents` (CV versions), `/applications`, `/dashboard`, and `/settings`.
 - [x] Use `HashRouter` for logical routes and Vite `base: "/roleward/"` for the
       GitHub Pages project path; build the static site into `dist/`.
-- [x] Keep local repositories separate from the future browser Gmail adapter.
+- [x] Keep local repositories separate from the future browser email adapters.
 - [x] Document public `VITE_GOOGLE_CLIENT_ID` configuration and the unconfigured
       state; no email credentials are required to run the shell.
 - [x] Reuse the revised route/domain declarations; omit the old jobs routes.
@@ -55,7 +55,7 @@ and storage declarations. Live Gmail and Pages configuration remain external set
 - Search or a job match calculator
 
 Email authorization and sync are out of scope for this bootstrap item only; they
-remain required for v1 through the browser Gmail integration. The deployed
+remain required for v1 through the browser Gmail and Outlook integrations. The deployed
 website has no application backend.
 
 ## Acceptance criteria
@@ -74,7 +74,7 @@ website has no application backend.
 
 - Revised product contract: documented
 - Route, domain, and persistence declarations: aligned in the prototype
-- Architecture: React/Vite on GitHub Pages, with local data and browser Gmail access
+- Architecture: React/Vite on GitHub Pages, with local data and browser Gmail/Outlook access
 - Google setup: needed for real integration later; the shell needs no live account
 
 ## Done when

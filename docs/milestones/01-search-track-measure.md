@@ -16,8 +16,9 @@ retained so links continue to work.
 ## Prototype status
 
 The initial prototype is runnable. It includes local CV versions, manual
-application editing, a Gmail review queue, statistics, automated tests, and the
-Pages workflow. Email field extraction remains manual. Real-provider validation
+application editing, Gmail and Outlook imports, statistics, automated tests, and the
+Pages workflow. Update scans three months of emails, adds clear confirmations automatically, and
+queues uncertain correspondence for review. Real-provider validation
 and live deployment are outstanding; this milestone is not yet complete.
 
 ## Scope
@@ -26,7 +27,7 @@ and live deployment are outstanding; this milestone is not yet complete.
 - A local database for CV files, version metadata, applications, and relevant
   synced email information, using IndexedDB through Dexie.
 - Independent CV uploads and a record of the version used for each application.
-- Gmail with browser authorization, user-triggered sync, reply association,
+- Gmail and Outlook with browser authorization, user-triggered sync, reply association,
   duplicate prevention, and disconnect.
 - Application review and correction of company, role, submission date, and status.
 - Total applications, applications per day, and current-status counts.
@@ -43,8 +44,8 @@ requirements.
 
 Update the earlier route, domain, and database declarations to match the revised
 product contract. Remove the requirement for a jobs catalogue and documents owned
-by applications. Align with the chosen Gmail integration and hash routing. Define
-the initial import window and sync limits, and plan the Google client setup for
+by applications. Align with the chosen Gmail and Outlook integrations and hash routing. Define
+the initial import window and sync limits, and plan Google and Microsoft client setup for
 the personal test account. No supporting backend is part of v1.
 
 **Done when:** The implementation plan supports local CV versions and real email
@@ -75,14 +76,14 @@ removing an application retains its CV versions.
 
 ### 4. Connect email and build the tracker
 
-Implement the Gmail integration from the tech stack, including disconnect,
+Implement the Gmail and Outlook integrations from the tech stack, including disconnect,
 reconnect, and user-triggered sync. Display
 company, role, application date, status, and replies. Deduplicate messages and
 applications, expose uncertain information for review, preserve corrections, and
 let the user select the CV version used. Support retry and reconnection without
 losing locally stored records.
 
-**Done when:** A configured Gmail mailbox supplies application information and
+**Done when:** A configured Gmail or Outlook mailbox supplies application information and
 replies; repeated syncs do not create duplicates; disconnect stops access while
 retaining local data. Fixtures alone do not complete email integration.
 
@@ -104,7 +105,7 @@ provider fixtures in CI and a real authorized mailbox before release. Check
 keyboard use, mobile layouts, deployment configuration, and local-storage scope.
 
 **Done when:** Required checks pass and the deployed app completes the real email,
-CV, and statistics journey on GitHub Pages. Setup documentation explains Google
+CV, and statistics journey on GitHub Pages. Setup documentation explains Google and Microsoft
 configuration, any applicable verification requirements, hash routing, and where
 user data is stored. No private mailbox data enters CI or deployment artifacts.
 
@@ -113,7 +114,7 @@ user data is stored. No private mailbox data enters CI or deployment artifacts.
 - [ ] Multiple CV versions can be uploaded, labelled, retained, and downloaded.
 - [ ] A CV version can be associated with more than one application.
 - [ ] CV uploads work before email is connected or applications exist.
-- [ ] Gmail connects through its API with user authorization on the deployed origin.
+- [ ] Gmail and Outlook connect through their APIs with user authorization on the deployed origin.
 - [ ] Company, application date, and replies appear, with missing fields marked
       unknown and available for correction.
 - [ ] Repeated syncs neither duplicate applications nor overwrite corrections.
@@ -121,7 +122,7 @@ user data is stored. No private mailbox data enters CI or deployment artifacts.
 - [ ] Disconnect and sync errors preserve local application and CV records.
 - [ ] Total, daily, and status statistics follow the product contract.
 - [ ] Reload preserves the workspace in the same browser profile and origin.
-- [ ] Automated checks pass and the Gmail journey works on GitHub Pages.
+- [ ] Automated checks pass and both email journeys works on GitHub Pages.
 - [ ] Direct hash links and refresh work beneath `/roleward/`.
 
 ## Possible later features
