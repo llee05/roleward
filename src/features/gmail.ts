@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import type { Email, ScanWindow } from '../domain/email';
+import {
+  htmlToText,
+  readEmailApi,
+  EmailAuthError,
+  type EmailAdapter,
+} from './email/provider';
 import type { Message } from '../domain/models';
 import { db } from '../persistence/local-database';
 import { ingestThread } from '../persistence/repository';
@@ -101,26 +108,15 @@ export function authorizeGmail(): Promise<void> {
 async function request(path: string, signal?: AbortSignal): Promise<unknown> {
   if (!token || Date.now() >= expiresAt) {
     token = '';
-    throw new Error('Your Gmail session expired. Reconnect to continue.');
-  }
-  const response = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/${path}`,
-    { headers: { Authorization: `Bearer ${token}` }, signal },
-  );
-  if (!response.ok) {
-    if (response.status === 401) {
-      token = '';
-      throw new Error('Your Gmail session expired. Reconnect to continue.');
-    }
-    if (response.status === 429)
-      throw new Error(
-        'Gmail is limiting requests. Wait a moment, then try syncing again.',
-      );
-    throw new Error(
-      `Gmail could not complete the request (${response.status}). Check API access and try again.`,
+    throw new EmailAuthError(
+      'Your Gmail session expired. Reconnect to continue.',
     );
   }
-  return response.json();
+  return readEmailApi(
+    `https://gmail.googleapis.com/gmail/v1/users/me/${path}`,
+    token,
+    signal,
+  );
 }
 export async function gmailProfile() {
   return z
@@ -240,3 +236,82 @@ export async function syncGmail(onProgress: (message: string) => void) {
   await db.settings.put({ key: 'lastSync', value: new Date().toISOString() });
   return { processed, limited: Boolean(page) };
 }
+
+function htmlBody(part?: Part): string {
+  if (!part || part.filename) return '';
+  if (part.mimeType === 'text/html' && part.body?.data) {
+    const binary = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+    return htmlToText(
+      new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0))),
+    );
+  }
+  return (part.parts ?? []).map(htmlBody).filter(Boolean).join('\n');
+}
+export async function getGmailEmail(
+  account: string,
+  id: string,
+  signal: AbortSignal,
+): Promise<Email> {
+  const m = messageSchema
+    .extend({ threadId: z.string(), labelIds: z.array(z.string()).optional() })
+    .parse(
+      await request(`messages/${encodeURIComponent(id)}?format=full`, signal),
+    );
+  const header = (name: string) =>
+    m.payload?.headers?.find((h) => h.name.toLowerCase() === name)?.value ?? '';
+  const sender = header('from');
+  return {
+    provider: 'gmail',
+    account,
+    id: m.id,
+    threadId: m.threadId,
+    sender,
+    subject: header('subject') || '(No subject)',
+    text: (
+      plainText(m.payload as Part) ||
+      htmlBody(m.payload as Part) ||
+      m.snippet ||
+      ''
+    ).slice(0, 30000),
+    receivedAt: new Date(Number(m.internalDate)).toISOString(),
+    outgoing:
+      Boolean(m.labelIds?.some((label) => ['SENT', 'DRAFT'].includes(label))) ||
+      sender.toLowerCase().includes(`<${account.toLowerCase()}>`) ||
+      sender.toLowerCase() === account.toLowerCase(),
+  };
+}
+export async function* scanGmailEmails(
+  account: string,
+  window: ScanWindow,
+  signal: AbortSignal,
+) {
+  let page = '';
+  const pages = new Set<string>();
+  do {
+    signal.throwIfAborted();
+    if (pages.has(page))
+      throw new Error('Gmail repeated a page. Retry Update.');
+    pages.add(page);
+    const query = new URLSearchParams({
+      maxResults: '100',
+      q: `after:${Math.floor(window.start.getTime() / 1000) - 1} before:${Math.ceil(window.end.getTime() / 1000) + 1} -in:drafts`,
+      ...(page ? { pageToken: page } : {}),
+    });
+    const result = z
+      .object({
+        messages: z.array(z.object({ id: z.string() })).optional(),
+        nextPageToken: z.string().optional(),
+      })
+      .parse(await request(`messages?${query}`, signal));
+    for (const message of result.messages ?? []) {
+      signal.throwIfAborted();
+      yield await getGmailEmail(account, message.id, signal);
+    }
+    page = result.nextPageToken ?? '';
+  } while (page);
+}
+export const gmailAdapter: EmailAdapter = {
+  provider: 'gmail',
+  scan: scanGmailEmails,
+  getEmail: getGmailEmail,
+};

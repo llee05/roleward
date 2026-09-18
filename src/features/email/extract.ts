@@ -64,7 +64,11 @@ export function extractApplication(email: Email): Extraction | null {
     .join('\n');
   const text = `${email.subject}\n${body}`;
   if (nonJob.test(text)) return null;
-  const isReceipt = receipt.test(text) && !solicitation.test(text);
+  const outcome =
+    /\b(?:unfortunately|unsuccessful|rejected|not (?:be )?(?:moving|proceeding) forward|interview invitation|schedule (?:an |your )?interview|pleased to offer)\b/i.test(
+      body,
+    );
+  const isReceipt = receipt.test(text) && !solicitation.test(text) && !outcome;
   const related =
     employment.test(text) &&
     /\b(?:your application|interview|job offer|candidacy|unfortunately|not be moving forward)\b/i.test(
