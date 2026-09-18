@@ -201,8 +201,8 @@ export async function syncGmail(onProgress: (message: string) => void) {
   // Continue refreshing previously tracked threads, even outside the discovery query.
   const sources = await db.sources.toArray();
   for (const source of sources)
-    if (source.id.startsWith(`${account}:`) && source.applicationId)
-      ids.add(source.id.slice(account.length + 1));
+    if (source.id.startsWith(`gmail:${account}:`) && source.applicationId)
+      ids.add(source.id.slice(`gmail:${account}:`.length));
   let processed = 0;
   for (const id of ids) {
     signal.throwIfAborted();

@@ -4,6 +4,12 @@ import {
   type ApplicationInput,
   type Message,
 } from '../domain/models';
+import {
+  emailSchema,
+  emailKey,
+  type Email,
+  type Extraction,
+} from '../domain/email';
 import { db } from './local-database';
 export async function saveApplication(input: ApplicationInput, id?: string) {
   const data = applicationInput.parse(input);
@@ -20,6 +26,8 @@ export async function saveApplication(input: ApplicationInput, id?: string) {
       appliedAt: data.appliedAt || null,
       id: id ?? crypto.randomUUID(),
       confirmed: true,
+      emailManaged: false,
+      extraction: existing?.extraction,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     };
@@ -111,7 +119,7 @@ export async function ingestThread(
   threadId: string,
   messages: Omit<Message, 'applicationId'>[],
 ) {
-  const sourceId = `${account}:${threadId}`;
+  const sourceId = emailKey('gmail', account, threadId);
   await db.transaction(
     'rw',
     db.applications,
@@ -134,14 +142,100 @@ export async function ingestThread(
           cvId: '',
           notes: '',
           confirmed: false,
+          emailManaged: true,
           createdAt: now,
           updatedAt: now,
         });
         await db.sources.add({ id: sourceId, applicationId: id });
       }
       await db.messages.bulkPut(
-        messages.map((message) => ({ ...message, applicationId: id })),
+        messages.map((message) => ({
+          ...message,
+          id: message.id.startsWith('gmail:')
+            ? message.id
+            : `gmail:${message.id}`,
+          provider: 'gmail',
+          applicationId: id,
+        })),
       );
+    },
+  );
+}
+
+/** Save one scanned message atomically. Existing user edits and deletion exclusions win. */
+export async function ingestEmail(input: Email, extraction: Extraction | null) {
+  const email = emailSchema.parse(input);
+  const sourceId = emailKey(email.provider, email.account, email.threadId);
+  return db.transaction(
+    'rw',
+    db.applications,
+    db.messages,
+    db.sources,
+    async () => {
+      const source = await db.sources.get(sourceId);
+      if (source?.applicationId === null) return 'ignored' as const;
+      if (!source && !extraction) return 'ignored' as const;
+      const existing = source?.applicationId
+        ? await db.applications.get(source.applicationId)
+        : undefined;
+      if (source && !existing)
+        throw new Error(
+          'Email association is missing its application. No records were changed.',
+        );
+      const id = existing?.id ?? crypto.randomUUID();
+      const now = new Date().toISOString();
+      let outcome: 'added' | 'review' | 'updated' = 'updated';
+      if (!existing && extraction) {
+        const values = applicationInput.parse({
+          ...extraction,
+          appliedAt: extraction.appliedAt ?? '',
+          cvId: '',
+          notes: '',
+          status: 'applied',
+        });
+        await db.applications.add({
+          ...values,
+          appliedAt: values.appliedAt || null,
+          id,
+          confirmed: extraction.confirmed,
+          emailManaged: true,
+          extraction: {
+            dateSource: extraction.dateSource,
+            reason: extraction.reason,
+          },
+          createdAt: now,
+          updatedAt: now,
+        });
+        await db.sources.add({ id: sourceId, applicationId: id });
+        outcome = extraction.confirmed ? 'added' : 'review';
+      } else if (existing?.emailManaged && extraction) {
+        // Enrich an unresolved reply when its confirmation arrives later in the scan.
+        // Never replace an established submission date with a later reply's date.
+        const promote = !existing.confirmed && extraction.confirmed;
+        await db.applications.update(id, {
+          company: existing.company || extraction.company,
+          role: existing.role || extraction.role,
+          appliedAt: existing.appliedAt ?? extraction.appliedAt,
+          confirmed: existing.confirmed || extraction.confirmed,
+          extraction: existing.appliedAt
+            ? existing.extraction
+            : { dateSource: extraction.dateSource, reason: extraction.reason },
+        });
+        if (promote) outcome = 'added';
+      }
+      await db.messages.put({
+        id: emailKey(email.provider, email.account, email.id),
+        provider: email.provider,
+        account: email.account.toLowerCase(),
+        threadId: email.threadId,
+        sender: email.sender,
+        subject: email.subject,
+        text: email.text.slice(0, 30000),
+        receivedAt: email.receivedAt,
+        webLink: email.webLink,
+        applicationId: id,
+      });
+      return outcome;
     },
   );
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { EmailProvider, Extraction } from './email';
 import { APPLICATION_STATUSES } from './application-statuses';
 export const applicationInput = z.object({
   company: z.string().trim().max(150),
@@ -22,6 +23,8 @@ export type Application = Omit<ApplicationInput, 'appliedAt'> & {
   id: string;
   appliedAt: string | null;
   confirmed: boolean;
+  emailManaged?: boolean;
+  extraction?: Pick<Extraction, 'dateSource' | 'reason'>;
   createdAt: string;
   updatedAt: string;
 };
@@ -35,6 +38,8 @@ export type Cv = {
   blob: Blob;
 };
 export type Message = {
+  provider?: EmailProvider;
+  webLink?: string;
   id: string;
   applicationId: string;
   account: string;
