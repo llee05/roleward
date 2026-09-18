@@ -22,3 +22,16 @@ These instructions apply throughout the Roleward repository.
 - Keep setup instructions and implementation-status documentation accurate when
   behavior changes. Distinguish fixture-tested functionality from live Gmail or
   deployment verification.
+
+## Validation
+
+- Use the Node.js version in `.nvmrc`, npm, and the committed lockfile.
+- For application changes, run `npm run format:check`, `npm run lint`,
+  `npm run typecheck`, `npm test`, and `npm run build`.
+- Run `npm run test:e2e` for changes to user journeys, routing, browser storage,
+  or email integration. Use fixtures rather than a real mailbox in automated tests.
+- For documentation-only tasks, check formatting, links, and `git diff --check`;
+  application tests are unnecessary unless behavior also changes.
+- Add meaningful regression coverage for changed behavior, especially persistence,
+  deduplication, counting rules, and preservation of data after failed operations.
+- Report checks performed and any remaining limitations in the final response.
