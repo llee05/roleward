@@ -2,6 +2,22 @@
 
 These instructions apply throughout the Roleward repository.
 
+## Required commit workflow
+
+- Split every task that changes the repository across several small, focused
+  commits. Do not deliver an entire task as one large commit.
+- Plan the commit boundaries before editing. Group changes by a coherent purpose,
+  such as contracts, implementation, regression coverage, or documentation.
+- Create the commits as each part is completed and validated; a proposed commit
+  plan alone does not satisfy this requirement.
+- Keep each commit reviewable and internally consistent. Avoid empty commits,
+  unrelated changes, or intentionally broken intermediate states.
+- Inspect the working tree first and stage only changes belonging to the task.
+  Preserve unrelated user work and never include it just to clean the working tree.
+- Use descriptive commit messages that explain the change. Preserve the separate
+  commits unless the user explicitly requests squashing or a different workflow.
+- Keep commits local unless the user also requests a push or publication.
+
 ## Project context
 
 - Read [README.md](README.md), the [product contract](docs/product-contract.md),
