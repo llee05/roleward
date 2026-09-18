@@ -1,59 +1,27 @@
-export const LOCAL_DATABASE_VERSION = 1 as const;
-
-export const LOCAL_PERSISTENCE = {
-  engine: "indexeddb",
-  library: "dexie",
-  databaseName: "roleward",
-  version: LOCAL_DATABASE_VERSION,
-} as const;
-
-/**
- * Dexie schema declarations list primary keys and indexes, not every stored field.
- * Document records may contain a `Blob`, but binary content must never be indexed.
- * IndexedDB does not enforce foreign keys or application-level invariants, so
- * repository writes/imports validate those and use transactions where needed.
- * The unique `&jobId` index enforces one application per local job.
- *
- * Job title/company substring search scans the small local result set; declaring
- * a Dexie index would not by itself provide that search behavior.
- */
+import Dexie, { type Table } from 'dexie';
+import type {
+  Application,
+  Cv,
+  Message,
+  Source,
+  Setting,
+} from '../domain/models';
 export const LOCAL_DATABASE_SCHEMA = {
-  jobs: "id, roleLevel, createdAt",
-  applications: "id, &jobId, status, appliedAt, updatedAt",
-  documents: "id, applicationId, uploadedAt",
-  settings: "key",
+  applications: 'id, appliedAt, updatedAt',
+  cvs: 'id, uploadedAt',
+  messages: 'id, applicationId',
+  sources: 'id, applicationId',
+  settings: 'key',
 } as const;
-
-export type LocalDatabaseTable = keyof typeof LOCAL_DATABASE_SCHEMA;
-
-export const BROWSER_STORAGE_POLICY = {
-  domainData: "indexeddb",
-  preferences: "localStorage",
-} as const;
-
-/** Version of the deterministic sample copied into a new sample workspace. */
-export const SAMPLE_DATA_VERSION = 1 as const;
-
-export const WORKSPACE_SETTINGS_KEY = "workspace" as const;
-
-export const WORKSPACE_MODES = ["personal", "sample"] as const;
-export type WorkspaceMode = (typeof WORKSPACE_MODES)[number];
-
-/**
- * Stored in the required workspace settings record, so Dexie export/import
- * carries Roleward compatibility metadata alongside its own format metadata.
- */
-export const LOCAL_BACKUP_FORMAT = {
-  name: "roleward-backup",
-  version: 1,
-  fileExtension: ".roleward-backup.json",
-} as const;
-
-export type WorkspaceSettingsRecord = {
-  key: typeof WORKSPACE_SETTINGS_KEY;
-  mode: WorkspaceMode;
-  initializedAt: string;
-  sampleDataVersion: number | null;
-  backupFormatName: typeof LOCAL_BACKUP_FORMAT.name;
-  backupFormatVersion: typeof LOCAL_BACKUP_FORMAT.version;
-};
+export class RolewardDatabase extends Dexie {
+  applications!: Table<Application>;
+  cvs!: Table<Cv>;
+  messages!: Table<Message>;
+  sources!: Table<Source>;
+  settings!: Table<Setting>;
+  constructor(name = 'roleward') {
+    super(name);
+    this.version(1).stores(LOCAL_DATABASE_SCHEMA);
+  }
+}
+export const db = new RolewardDatabase();

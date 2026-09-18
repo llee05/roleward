@@ -1,100 +1,83 @@
-# GitHub Project item: Bootstrap the local-first application
+# Project item: Bootstrap the Roleward web app
 
 ## Project placement
 
-- **Title:** `[M1] Bootstrap the local-first Roleward application`
+- **Title:** `[M1] Bootstrap the Roleward web app`
 - **Initial view:** Backlog
 - **Move to Development when:** implementation starts
+- **Close when:** the acceptance criteria below are complete
 
-The project uses only two views. **Backlog** contains work that has not started;
-**Development** contains active work. Close the issue when its acceptance criteria
-are complete, so a separate completed view is unnecessary.
+## Implementation status
+
+Implemented and validated locally in the initial prototype. The scope and
+acceptance criteria below are satisfied by the scaffold, production build, and
+unit/browser checks. The prototype also implements the first local features and
+Gmail review flow; a live mailbox and GitHub Pages deployment still need external
+configuration. See the [README](../../README.md) to run it.
 
 ## Summary
 
-Bootstrap the Next.js application and its quality tooling so the next delivery
-step can implement Roleward's IndexedDB/Dexie repositories. Create the application
-shell and placeholder routes from the product contract, but do not implement job,
-application, document, dashboard, or database behavior yet.
+Bootstrap the web app and quality tooling for a job-search tracker with local CV
+versions, email-connected application information, and statistics. Create the shell
+and placeholder pages without implementing those features in this item.
 
-This issue follows the [Milestone 1 product contract](../product-contract.md) and
-[delivery plan](../milestones/01-search-track-measure.md).
-
-## Why
-
-The product and persistence contracts are complete, but the repository does not
-yet contain a runnable application. Establishing the framework, scripts, browser
-data boundary, and test harness first gives later Dexie and feature work a stable
-foundation.
+Follow the [v1 product contract](../product-contract.md),
+[tech stack](../tech-stack.md), and
+[delivery plan](../milestones/01-search-track-measure.md). The initial prototype now provides this scaffold and aligns the route, domain,
+and storage declarations. Live Gmail and Pages configuration remain external setup.
 
 ## Scope
 
-- [ ] Scaffold a Next.js App Router application with strict TypeScript.
-- [ ] Configure Tailwind CSS and shadcn/ui.
-- [ ] Add runtime dependencies:
-  - [ ] `dexie`
-  - [ ] `dexie-react-hooks`
-  - [ ] `dexie-export-import`
-  - [ ] `zod`
-  - [ ] `react-hook-form`
-- [ ] Configure ESLint and formatting.
-- [ ] Configure Vitest, React Testing Library, and `fake-indexeddb`.
-- [ ] Configure Playwright with one application smoke test.
-- [ ] Add documented scripts for development, linting, formatting checks,
-      type-checking, unit tests, end-to-end tests, and production builds.
-- [ ] Add a responsive application shell with navigation for:
-  - [ ] `/`
-  - [ ] `/jobs`
-  - [ ] `/applications`
-  - [ ] `/documents`
-  - [ ] `/dashboard`
-  - [ ] `/settings`
-- [ ] Add placeholder pages for every route above and `/jobs/[id]`.
-- [ ] Establish a client-only boundary for future IndexedDB-backed content.
-      Server-rendered code must not import or open Dexie.
-- [ ] Reuse the existing route, domain, and persistence constants instead of
-      duplicating their values.
-- [ ] Document the selected package manager and local development commands.
+- [x] Scaffold a React and Vite single-page website with strict TypeScript.
+- [x] Configure Tailwind CSS and shadcn/ui.
+- [x] Add React Router, Dexie, `dexie-react-hooks`, Zod, React Hook Form, and
+      `@hookform/resolvers`.
+- [x] Configure ESLint, formatting, Vitest, React Testing Library, and `fake-indexeddb`.
+- [x] Configure Playwright with an application smoke test.
+- [x] Document scripts for development, formatting checks, linting, type checking,
+      unit tests, end-to-end tests, and production builds.
+- [x] Add a responsive shell with navigation and placeholders for `/`,
+      `/documents` (CV versions), `/applications`, `/dashboard`, and `/settings`.
+- [x] Use `HashRouter` for logical routes and Vite `base: "/roleward/"` for the
+      GitHub Pages project path; build the static site into `dist/`.
+- [x] Keep local repositories separate from the future browser Gmail adapter.
+- [x] Document public `VITE_GOOGLE_CLIENT_ID` configuration and the unconfigured
+      state; no email credentials are required to run the shell.
+- [x] Reuse the revised route/domain declarations; omit the old jobs routes.
+- [x] Use npm, commit `package-lock.json`, and pin a supported Node.js LTS runtime.
 
-## Out of scope
+## Out of scope for this item
 
-- Opening the IndexedDB database or implementing Dexie repositories
-- Database migrations, sample data, backup/import, or reset behavior
-- Job capture, search, and filtering
-- Application tracking and metrics
-- Document upload or Blob persistence
-- Authentication, Supabase, cloud storage, or synchronization
-- PWA installation or offline application-shell caching
+- Database repositories, migrations, and file persistence
+- CV uploads and version associations
+- Real email authorization, sync, and message matching
+- Application editing and statistics
+- Search or a job match calculator
+
+Email authorization and sync are out of scope for this bootstrap item only; they
+remain required for v1 through the browser Gmail integration. The deployed
+website has no application backend.
 
 ## Acceptance criteria
 
-- [ ] A clean checkout can install dependencies with the documented package
-      manager.
-- [ ] The development server starts without backend credentials or an `.env` file.
-- [ ] Every contracted route renders inside the responsive application shell.
-- [ ] Navigation works with keyboard input and exposes a visible current-page state.
-- [ ] No server component imports Dexie or reads browser storage.
-- [ ] One unit/component smoke test and one Playwright smoke test pass.
-- [ ] Lint, formatting check, type-check, unit test, end-to-end test, and production
-      build commands are documented and pass.
-- [ ] The implementation introduces no Supabase, authentication, cloud database,
-      or cloud-storage dependency.
-
-## Suggested commit breakdown
-
-1. `chore(app): bootstrap Next.js and local-first dependencies`
-2. `feat(shell): add milestone routes and responsive navigation`
-3. `test(app): configure baseline unit and browser checks`
-4. `docs(setup): document local development commands`
+- [x] A clean checkout installs and starts using the documented commands.
+- [x] The unconnected shell runs without a Google client ID or mailbox authorization.
+- [x] Every contracted page renders within the responsive shell.
+- [x] Navigation works with keyboard input and indicates the current page.
+- [x] The production build contains static files and requires no server runtime.
+- [x] Direct hash links and refresh work under `/roleward/` with assets loading.
+- [x] Build configuration contains no secrets; the OAuth client ID is public.
+- [x] Unit/component and Playwright smoke tests pass.
+- [x] Formatting, lint, type-check, test, and build commands are documented and pass.
 
 ## Dependencies
 
-- Product contract: complete
-- Route contract: complete
-- IndexedDB/Dexie persistence contract: complete
+- Revised product contract: documented
+- Route, domain, and persistence declarations: aligned in the prototype
+- Architecture: React/Vite on GitHub Pages, with local data and browser Gmail access
+- Google setup: needed for real integration later; the shell needs no live account
 
 ## Done when
 
-A clean checkout is a runnable, testable application shell that is ready for the
-versioned Dexie database foundation, without prematurely implementing Milestone 1
-feature behavior.
+A clean checkout provides a runnable, testable static shell ready for local CV versions,
+email-connected tracking, and statistics.
