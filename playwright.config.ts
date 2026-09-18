@@ -21,6 +21,9 @@ export default defineConfig({
     command: 'npm run dev -- --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173/roleward/',
     reuseExistingServer: false,
-    env: { VITE_GOOGLE_CLIENT_ID: 'prototype-test.apps.googleusercontent.com' },
+    env: {
+      VITE_GOOGLE_CLIENT_ID: 'prototype-test.apps.googleusercontent.com',
+      VITE_MICROSOFT_CLIENT_ID: '00000000-0000-0000-0000-000000000001',
+    },
   },
 });

@@ -27,7 +27,13 @@ export async function saveApplication(input: ApplicationInput, id?: string) {
       id: id ?? crypto.randomUUID(),
       confirmed: true,
       emailManaged: false,
-      extraction: existing?.extraction,
+      extraction:
+        existing?.extraction && existing.appliedAt !== (data.appliedAt || null)
+          ? {
+              dateSource: data.appliedAt ? 'explicit' : 'unknown',
+              reason: 'Application date corrected by you.',
+            }
+          : existing?.extraction,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     };
@@ -212,14 +218,22 @@ export async function ingestEmail(input: Email, extraction: Extraction | null) {
         // Enrich an unresolved reply when its confirmation arrives later in the scan.
         // Never replace an established submission date with a later reply's date.
         const promote = !existing.confirmed && extraction.confirmed;
+        const improveDate = Boolean(
+          extraction.appliedAt &&
+          (!existing.appliedAt ||
+            (existing.extraction?.dateSource === 'confirmation' &&
+              (extraction.dateSource === 'explicit' ||
+                (extraction.dateSource === 'confirmation' &&
+                  extraction.appliedAt < existing.appliedAt)))),
+        );
         await db.applications.update(id, {
           company: existing.company || extraction.company,
           role: existing.role || extraction.role,
-          appliedAt: existing.appliedAt ?? extraction.appliedAt,
+          appliedAt: improveDate ? extraction.appliedAt : existing.appliedAt,
           confirmed: existing.confirmed || extraction.confirmed,
-          extraction: existing.appliedAt
-            ? existing.extraction
-            : { dateSource: extraction.dateSource, reason: extraction.reason },
+          extraction: improveDate
+            ? { dateSource: extraction.dateSource, reason: extraction.reason }
+            : existing.extraction,
         });
         if (promote) outcome = 'added';
       }

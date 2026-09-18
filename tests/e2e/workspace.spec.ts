@@ -89,63 +89,128 @@ test('CV versions, application edits, metrics, and reload persist locally', asyn
     ),
   ).toBe(true);
 });
-test('Gmail fixture sync, review, repeat sync and disconnect', async ({
+test('Gmail and Outlook Update extract applications, preserve edits and avoid duplicates', async ({
   page,
 }) => {
+  await page.route('**/src/features/email/outlook-auth.ts', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `export const outlookConfigured = true; export const loadOutlook = async () => {}; export const authorizeOutlook = async () => {}; export const getOutlookToken = () => 'outlook-test-token'; export const disconnectOutlook = async () => 'Outlook disconnected locally.';`,
+    }),
+  );
+  const receivedAt = new Date(Date.now() - 86400000).toISOString();
   await page.route('https://gmail.googleapis.com/**', (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/profile'))
       return route.fulfill({ json: { emailAddress: 'test@example.com' } });
-    if (url.pathname.endsWith('/threads'))
-      return route.fulfill({ json: { threads: [{ id: 'thread1' }] } });
+    if (url.pathname.endsWith('/messages'))
+      return route.fulfill({ json: { messages: [{ id: 'message1' }] } });
     return route.fulfill({
       json: {
-        messages: [
+        id: 'message1',
+        threadId: 'thread1',
+        internalDate: String(Date.parse(receivedAt)),
+        payload: {
+          headers: [
+            { name: 'Subject', value: 'Thanks for applying to Acme' },
+            { name: 'From', value: 'recruiter@example.com' },
+          ],
+          mimeType: 'text/plain',
+          body: {
+            data: Buffer.from(
+              'We received your application for the Designer role.',
+            ).toString('base64url'),
+          },
+        },
+      },
+    });
+  });
+  await page.route('https://graph.microsoft.com/**', (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/me'))
+      return route.fulfill({ json: { mail: 'test@example.com' } });
+    return route.fulfill({
+      json: {
+        value: [
           {
             id: 'message1',
-            internalDate: String(Date.now()),
-            snippet: 'Thanks for your application.',
-            payload: {
-              headers: [
-                { name: 'Subject', value: 'Your application to Acme' },
-                { name: 'From', value: 'recruiter@example.com' },
-              ],
-              mimeType: 'text/plain',
-              body: {
-                data: Buffer.from(
-                  'Thanks for applying. We will be in touch.',
-                ).toString('base64url'),
-              },
+            conversationId: 'thread1',
+            receivedDateTime: receivedAt,
+            subject: 'Thank you for applying to Contoso',
+            from: { emailAddress: { address: 'jobs@contoso.example' } },
+            body: {
+              contentType: 'text',
+              content: 'We received your application for the Engineer role.',
             },
+            webLink: 'https://outlook.live.com/mail/0/inbox/id/message1',
+          },
+          {
+            id: 'newsletter',
+            conversationId: 'other',
+            receivedDateTime: receivedAt,
+            subject: 'Weekly news',
+            body: { contentType: 'text', content: 'Enjoy this week’s news.' },
           },
         ],
       },
     });
   });
   await page.goto('#/settings');
-  await page.getByRole('button', { name: 'Connect Gmail' }).click();
-  await page.getByRole('button', { name: 'Sync now' }).click();
-  await expect(page.getByRole('status')).toContainText('Synced 1 threads');
+  await page
+    .getByRole('button', { name: 'Connect Gmail', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Connect Outlook', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'Gmail: scanned 1 emails, added 1 applications',
+  );
+  await expect(page.getByRole('status')).toContainText(
+    'Outlook: scanned 2 emails, added 1 applications',
+  );
   await page.getByRole('link', { name: /^Applications/ }).click();
-  await page.getByRole('button', { name: 'Email review 1' }).click();
-  await page.getByRole('button', { name: /Your application to Acme/ }).click();
+  await expect(page.getByRole('button', { name: 'Tracked 2' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit Contoso' }).click();
+  await expect(page.getByLabel('Role', { exact: true })).toHaveValue(
+    'Engineer',
+  );
+  await expect(page.getByText(/Application date is estimated/)).toBeVisible();
   await expect(
-    page.getByText('Thanks for applying. We will be in touch.'),
-  ).toBeVisible();
-  await page.getByLabel('Company', { exact: true }).fill('Acme');
-  await page.getByRole('button', { name: 'Confirm application' }).click();
+    page.getByRole('link', { name: 'Open in Outlook' }),
+  ).toHaveAttribute(
+    'href',
+    'https://outlook.live.com/mail/0/inbox/id/message1',
+  );
+  await page.getByLabel('Company', { exact: true }).fill('Contoso corrected');
+  await page.getByLabel(/^Application date/).fill('2026-01-02');
+  await page.getByRole('button', { name: 'Save application' }).click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'Outlook: scanned 2 emails, added 0 applications',
+  );
+  await expect(page.getByRole('button', { name: 'Tracked 2' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit Contoso corrected' }).click();
+  await expect(page.getByLabel(/^Application date/)).toHaveValue('2026-01-02');
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'Outlook: scanned 2 emails, added 0 applications',
+  );
+  await expect(page.getByRole('button', { name: 'Tracked 1' })).toBeVisible();
   await page.getByRole('link', { name: 'Workspace', exact: true }).click();
-  await page.getByRole('button', { name: 'Sync now' }).click();
-  await expect(page.getByRole('status')).toContainText('Synced 1 threads');
-  await page.getByRole('button', { name: 'Disconnect', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Disconnect Gmail', exact: true })
+    .click();
   await expect(page.getByRole('status')).toContainText('access revoked');
-  await page.getByRole('link', { name: 'Overview' }).click();
+  await page
+    .getByRole('button', { name: 'Disconnect Outlook', exact: true })
+    .click();
   await expect(
-    page
-      .locator('.stat-card')
-      .filter({ hasText: 'Total applications' })
-      .locator('strong'),
-  ).toHaveText('1');
+    page.getByRole('button', { name: 'Update', exact: true }),
+  ).toBeDisabled();
+  await page.getByRole('link', { name: 'Overview' }).click();
   await page.reload();
   await expect(
     page
@@ -153,9 +218,82 @@ test('Gmail fixture sync, review, repeat sync and disconnect', async ({
       .filter({ hasText: 'Total applications' })
       .locator('strong'),
   ).toHaveText('1');
+  const browserStorage = await page.evaluate(
+    () => JSON.stringify(localStorage) + JSON.stringify(sessionStorage),
+  );
+  expect(browserStorage).not.toContain('test-only-token');
+  expect(browserStorage).not.toContain('outlook-test-token');
   expect(
     await page.evaluate(
-      () => JSON.stringify(localStorage) + JSON.stringify(sessionStorage),
+      () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
-  ).not.toContain('test-only-token');
+  ).toBe(true);
+});
+
+test('partial update preserves imports and keeps ambiguous replies out of statistics', async ({
+  page,
+}) => {
+  await page.route('https://gmail.googleapis.com/**', (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/profile'))
+      return route.fulfill({ json: { emailAddress: 'test@example.com' } });
+    if (url.pathname.endsWith('/messages'))
+      return route.fulfill({
+        json: {
+          messages: [{ id: 'receipt' }, { id: 'interview' }, { id: 'expired' }],
+        },
+      });
+    if (url.pathname.endsWith('/expired'))
+      return route.fulfill({ status: 401, json: {} });
+    const interview = url.pathname.endsWith('/interview');
+    return route.fulfill({
+      json: {
+        id: interview ? 'interview' : 'receipt',
+        threadId: interview ? 'review-thread' : 'confirmed-thread',
+        internalDate: String(Date.now() - 86400000),
+        payload: {
+          headers: [
+            {
+              name: 'Subject',
+              value: interview
+                ? 'Interview invitation'
+                : 'Thank you for applying to Acme',
+            },
+          ],
+          mimeType: 'text/plain',
+          body: {
+            data: Buffer.from(
+              interview
+                ? 'Your application for the Engineer role at Contoso has progressed.'
+                : 'We received your application for the Designer role.',
+            ).toString('base64url'),
+          },
+        },
+      },
+    });
+  });
+  await page.goto('#/settings');
+  await page
+    .getByRole('button', { name: 'Connect Gmail', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Reconnect to continue');
+  await expect(
+    page.getByRole('button', { name: 'Connect Gmail', exact: true }),
+  ).toBeEnabled();
+  await page.getByRole('link', { name: /^Applications/ }).click();
+  await page.getByRole('button', { name: 'Email review 1' }).click();
+  await page.getByRole('button', { name: /Interview invitation/ }).click();
+  await expect(page.getByLabel('Company', { exact: true })).toHaveValue(
+    'Contoso',
+  );
+  await expect(page.getByLabel(/^Application date/)).toHaveValue('');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('link', { name: 'Overview' }).click();
+  await expect(
+    page
+      .locator('.stat-card')
+      .filter({ hasText: 'Total applications' })
+      .locator('strong'),
+  ).toHaveText('1');
 });

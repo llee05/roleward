@@ -111,6 +111,13 @@ export function ApplicationEditor({
       }
     >
       <form onSubmit={handleSubmit(save)} className="form-stack">
+        {application?.extraction && (
+          <p className="notice">
+            {application.extraction.reason}{' '}
+            {application.extraction.dateSource === 'confirmation' &&
+              'Application date is estimated from the confirmation email. Correct it if you submitted on a different day.'}
+          </p>
+        )}
         <div className="form-grid">
           <label>
             Company
@@ -221,8 +228,8 @@ export function ApplicationEditor({
           </h3>
           {messages.length === 0 ? (
             <p className="muted">
-              No emails linked yet. Connect Gmail to bring your correspondence
-              together.
+              No emails linked yet. Connect Gmail or Outlook to bring your
+              correspondence together.
             </p>
           ) : (
             messages.map((m) => (
@@ -232,13 +239,20 @@ export function ApplicationEditor({
                   {m.sender} · {displayDate(m.receivedAt)}
                 </p>
                 <p className="message-text">{m.text}</p>
-                <a
-                  href={`https://mail.google.com/mail/u/?authuser=${encodeURIComponent(m.account)}#all/${encodeURIComponent(m.threadId)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open in Gmail <ArrowUpRight size={14} />
-                </a>
+                {(m.provider !== 'outlook' || m.webLink) && (
+                  <a
+                    href={
+                      m.provider === 'outlook'
+                        ? m.webLink
+                        : `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(m.account)}#all/${encodeURIComponent(m.threadId)}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open in {m.provider === 'outlook' ? 'Outlook' : 'Gmail'}{' '}
+                    <ArrowUpRight size={14} />
+                  </a>
+                )}
               </article>
             ))
           )}

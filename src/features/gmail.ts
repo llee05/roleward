@@ -6,9 +6,6 @@ import {
   EmailAuthError,
   type EmailAdapter,
 } from './email/provider';
-import type { Message } from '../domain/models';
-import { db } from '../persistence/local-database';
-import { ingestThread } from '../persistence/repository';
 const SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 export const gmailConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 type TokenResponse = {
@@ -41,7 +38,6 @@ declare global {
 let loader: Promise<void> | undefined;
 let token = '';
 let expiresAt = 0;
-let controller: AbortController | undefined;
 export function loadGoogle() {
   if (window.google) return Promise.resolve();
   if (!loader)
@@ -125,7 +121,6 @@ export async function gmailProfile() {
     .emailAddress.toLowerCase();
 }
 export async function disconnectGmail() {
-  controller?.abort();
   const current = token;
   token = '';
   expiresAt = 0;
@@ -171,72 +166,6 @@ const messageSchema = z.object({
     .passthrough()
     .optional(),
 });
-export async function syncGmail(onProgress: (message: string) => void) {
-  controller = new AbortController();
-  const signal = controller.signal;
-  const account = await gmailProfile();
-  const ids = new Set<string>();
-  let page = '';
-  for (let i = 0; i < 2; i++) {
-    signal.throwIfAborted();
-    const query = new URLSearchParams({
-      maxResults: '50',
-      q: 'newer_than:180d {"application" "interview" "job offer" "candidacy"}',
-      ...(page ? { pageToken: page } : {}),
-    });
-    const result = z
-      .object({
-        threads: z.array(z.object({ id: z.string() })).optional(),
-        nextPageToken: z.string().optional(),
-      })
-      .parse(await request(`threads?${query}`, signal));
-    result.threads?.forEach((thread) => ids.add(thread.id));
-    page = result.nextPageToken ?? '';
-    if (!page) break;
-  }
-  // Continue refreshing previously tracked threads, even outside the discovery query.
-  const sources = await db.sources.toArray();
-  for (const source of sources)
-    if (source.id.startsWith(`gmail:${account}:`) && source.applicationId)
-      ids.add(source.id.slice(`gmail:${account}:`.length));
-  let processed = 0;
-  for (const id of ids) {
-    signal.throwIfAborted();
-    onProgress(`Reviewing thread ${processed + 1} of ${ids.size}…`);
-    const result = z
-      .object({ messages: z.array(messageSchema).optional() })
-      .parse(
-        await request(`threads/${encodeURIComponent(id)}?format=full`, signal),
-      );
-    const messages: Omit<Message, 'applicationId'>[] = (
-      result.messages ?? []
-    ).map((m) => {
-      const header = (name: string) =>
-        m.payload?.headers?.find((h) => h.name.toLowerCase() === name)?.value ??
-        '';
-      return {
-        id: `${account}:${m.id}`,
-        account,
-        threadId: id,
-        sender: header('from'),
-        subject: header('subject') || '(No subject)',
-        text: (
-          plainText(m.payload as Part) ||
-          m.snippet ||
-          'No plain-text message available.'
-        ).slice(0, 30000),
-        receivedAt: new Date(Number(m.internalDate)).toISOString(),
-      };
-    });
-    signal.throwIfAborted();
-    if (messages.length) await ingestThread(account, id, messages);
-    processed++;
-  }
-  signal.throwIfAborted();
-  await db.settings.put({ key: 'lastSync', value: new Date().toISOString() });
-  return { processed, limited: Boolean(page) };
-}
-
 function htmlBody(part?: Part): string {
   if (!part || part.filename) return '';
   if (part.mimeType === 'text/html' && part.body?.data) {

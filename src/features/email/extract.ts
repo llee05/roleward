@@ -42,7 +42,11 @@ function explicitDate(text: string, receivedAt: string) {
     /^(?:\d{1,2} [A-Za-z]+ \d{4}|[A-Za-z]+ \d{1,2},? \d{4})$/.test(value)
   ) {
     const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) date = localDate(parsed);
+    if (
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.getDate() === Number(value.match(/\b\d{1,2}\b/)?.[0])
+    )
+      date = localDate(parsed);
   }
   if (
     !date ||
@@ -65,10 +69,14 @@ export function extractApplication(email: Email): Extraction | null {
   const text = `${email.subject}\n${body}`;
   if (nonJob.test(text)) return null;
   const outcome =
-    /\b(?:unfortunately|unsuccessful|rejected|not (?:be )?(?:moving|proceeding) forward|interview invitation|schedule (?:an |your )?interview|pleased to offer)\b/i.test(
+    /\b(?:unfortunately|unsuccessful|rejected|not (?:be )?(?:moving|proceeding) forward|interview invitation|(?:schedule|scheduled|invite you (?:to|for)) (?:an? |your )?interview|pleased to offer)\b/i.test(
       body,
     );
-  const isReceipt = receipt.test(text) && !solicitation.test(text) && !outcome;
+  const isReceipt =
+    (receipt.test(body) ||
+      (!/^re\s*:/i.test(email.subject) && receipt.test(email.subject))) &&
+    !solicitation.test(text) &&
+    !outcome;
   const related =
     employment.test(text) &&
     /\b(?:your application|interview|job offer|candidacy|unfortunately|not be moving forward)\b/i.test(

@@ -97,6 +97,44 @@ describe('application extraction', () => {
       dateSource: 'confirmation',
     });
   });
+  it('does not use a receipt quoted in a reply subject as a new confirmation', () => {
+    expect(
+      extractApplication({
+        ...email,
+        subject: 'Re: Thank you for applying to Acme',
+        text: 'Your application for the Designer role is being considered.',
+      }),
+    ).toMatchObject({ confirmed: false, appliedAt: null });
+  });
+  it('distinguishes receipt next-step guidance from an actual interview invitation', () => {
+    expect(
+      extractApplication({
+        ...email,
+        text: 'Thanks for applying to Acme for the Designer role. We may contact you for an interview.',
+      }),
+    ).toMatchObject({ confirmed: true });
+    expect(
+      extractApplication({
+        ...email,
+        subject: 'Re: Thank you for applying to Acme',
+        text: 'We invite you to an interview for the Designer role.',
+      }),
+    ).toMatchObject({ confirmed: false, appliedAt: null });
+  });
+  it('rejects impossible written dates and parses valid written dates', () => {
+    expect(
+      extractApplication({
+        ...email,
+        text: 'We received your job application.\nApplication date: February 30, 2026',
+      }),
+    ).toMatchObject({ dateSource: 'confirmation' });
+    expect(
+      extractApplication({
+        ...email,
+        text: 'We received your job application.\nApplication date: September 10, 2026',
+      }),
+    ).toMatchObject({ dateSource: 'explicit', appliedAt: '2026-09-10' });
+  });
   it('uses three calendar months with month-end clamping', () => {
     const range = scanWindow(new Date(2026, 4, 31, 12));
     expect([

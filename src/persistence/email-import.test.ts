@@ -42,6 +42,10 @@ it('preserves user corrections and deletion exclusions across scans', async () =
   expect(await db.applications.get(app.id)).toMatchObject({
     company: 'Corrected',
     appliedAt: null,
+    extraction: {
+      dateSource: 'unknown',
+      reason: 'Application date corrected by you.',
+    },
   });
   await removeApplication(app.id);
   await ingestEmail(email, extractApplication(email));
@@ -116,4 +120,26 @@ it('migrates version 1 records, CV bytes, associations, and tombstones without l
   } finally {
     await upgraded.delete();
   }
+});
+
+it('prefers the earliest receipt estimate and then an explicit submission date until the user edits it', async () => {
+  await ingestEmail(email, extractApplication(email));
+  const earlier = {
+    ...email,
+    id: 'earlier',
+    receivedAt: '2026-09-10T12:00:00Z',
+  };
+  await ingestEmail(earlier, extractApplication(earlier));
+  expect((await db.applications.toArray())[0].appliedAt).toBe('2026-09-10');
+  const explicit = {
+    ...email,
+    id: 'explicit',
+    text: email.text + '\nApplication date: 2026-09-09',
+  };
+  await ingestEmail(explicit, extractApplication(explicit));
+  await ingestEmail(email, extractApplication(email));
+  expect((await db.applications.toArray())[0]).toMatchObject({
+    appliedAt: '2026-09-09',
+    extraction: { dateSource: 'explicit' },
+  });
 });

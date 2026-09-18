@@ -115,9 +115,11 @@ function Shell() {
           </div>
           <Link to={ROUTES.settings} className="topbar-connection">
             <span
-              className={`connection-dot ${email.account ? 'online' : ''}`}
+              className={`connection-dot ${email.connectedCount ? 'online' : ''}`}
             />
-            {email.account ? 'Gmail connected' : 'Connect your inbox'}
+            {email.connectedCount
+              ? `${email.connectedCount} inbox${email.connectedCount === 1 ? '' : 'es'} connected`
+              : 'Connect your inbox'}
             <ArrowUpRight size={14} />
           </Link>
         </header>

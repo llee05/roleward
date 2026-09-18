@@ -14,12 +14,10 @@ import {
   Mail,
   Pencil,
   Plus,
-  RefreshCw,
   ShieldCheck,
   Sparkles,
   Trash2,
   Upload,
-  Unplug,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Modal } from '../components/ui/dialog';
@@ -31,7 +29,7 @@ import { removeCv, renameCv, uploadCv } from '../persistence/repository';
 import { ApplicationEditor } from './application-editor';
 import type { Workspace } from './workspace';
 import { useEmail } from './email-context';
-import { gmailConfigured } from './gmail';
+import { EmailConnections, UpdateControls } from './email-controls';
 export function PageHeading({
   eyebrow,
   title,
@@ -187,7 +185,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           </Button>
         }
       />
-      {(!email.account || !workspace.cvs.length) && (
+      {(!email.connectedCount || !workspace.cvs.length) && (
         <div className="welcome-banner">
           <span className="banner-icon">
             <Sparkles size={24} />
@@ -331,8 +329,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             title="A fresh start for your search"
           >
             <p>
-              Add your first application, or connect Gmail to review application
-              emails.
+              Add your first application, or connect Gmail or Outlook to review
+              application emails.
             </p>
             <Button variant="outline" onClick={() => setSelected('new')}>
               <Plus size={16} /> Add an application
@@ -380,6 +378,7 @@ export function Applications({ workspace }: { workspace: Workspace }) {
           </Button>
         }
       />
+      <UpdateControls />
       <div className="tabs" role="group" aria-label="Application view">
         <button
           className={tab === 'tracked' ? 'active' : ''}
@@ -409,7 +408,10 @@ export function Applications({ workspace }: { workspace: Workspace }) {
               icon={<BriefcaseBusiness size={28} />}
               title="Your story starts with one application"
             >
-              <p>Add an application now or bring in your emails from Gmail.</p>
+              <p>
+                Add an application now or bring in your emails from Gmail or
+                Outlook.
+              </p>
               <Button onClick={() => setSelected('new')}>
                 Add your first application <ArrowRight size={16} />
               </Button>
@@ -450,7 +452,7 @@ export function Applications({ workspace }: { workspace: Workspace }) {
           </div>
         ) : (
           <Empty icon={<Inbox size={28} />} title="All caught up">
-            <p>Synced application emails will appear here for review.</p>
+            <p>Uncertain application emails will appear here for review.</p>
             <Button asChild variant="outline">
               <Link to="/settings">
                 Go to email connection <ArrowRight size={16} />
@@ -713,8 +715,6 @@ export function Documents({ workspace }: { workspace: Workspace }) {
   );
 }
 export function Settings({ workspace }: { workspace: Workspace }) {
-  const email = useEmail();
-  const lastSync = workspace.settings.find((s) => s.key === 'lastSync')?.value;
   return (
     <>
       <PageHeading
@@ -722,119 +722,7 @@ export function Settings({ workspace }: { workspace: Workspace }) {
         title="Your workspace"
         description="Connect your inbox. Keep your information close."
       />
-      <section className="panel settings-panel">
-        <div className="panel-heading">
-          <div className="settings-title">
-            <span className="service-icon">
-              <Mail size={25} />
-            </span>
-            <div>
-              <h2>Gmail connection</h2>
-              <p>Bring your application correspondence together.</p>
-            </div>
-          </div>
-          <span
-            className={`connection-pill ${email.account ? 'connected' : ''}`}
-          >
-            <span />
-            {email.account ? 'Connected' : 'Not connected'}
-          </span>
-        </div>
-        <div className="settings-body">
-          <h3>{email.account || 'Less inbox hopping. More clarity.'}</h3>
-          <p>
-            Review application confirmations, interview invitations, and replies
-            in one place. You choose what becomes a tracked application.
-          </p>
-          <div className="connection-details">
-            <span>
-              <Check size={16} /> Read-only access
-            </span>
-            <span>
-              <Check size={16} /> Sync when you choose
-            </span>
-            <span>
-              <Check size={16} /> Stored in your browser
-            </span>
-          </div>
-          {!gmailConfigured && (
-            <div className="notice">
-              <strong>Gmail setup is needed for this prototype.</strong>
-              <p>
-                Set the public <code>VITE_GOOGLE_CLIENT_ID</code> in your local
-                environment and restart the app. Enable the Gmail API and
-                register this website's origin in Google Cloud. You can use CVs
-                and add applications in the meantime.
-              </p>
-              <a
-                href="https://developers.google.com/workspace/gmail/api/quickstart/js"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Google setup guide <ArrowUpRight size={14} />
-              </a>
-            </div>
-          )}
-          <div className="settings-actions">
-            <Button
-              disabled={!gmailConfigured || !email.ready || email.busy}
-              onClick={() => void email.connect()}
-            >
-              <Mail size={17} />
-              {email.account ? 'Reconnect Gmail' : 'Connect Gmail'}
-            </Button>
-            {email.account && (
-              <>
-                <Button
-                  variant="outline"
-                  disabled={email.busy}
-                  onClick={() => void email.sync()}
-                >
-                  <RefreshCw size={16} className={email.busy ? 'spin' : ''} />
-                  Sync now
-                </Button>
-                <Button
-                  variant="ghost"
-                  disabled={email.busy}
-                  onClick={() => void email.disconnect()}
-                >
-                  <Unplug size={16} />
-                  Disconnect
-                </Button>
-              </>
-            )}
-          </div>
-          <p className="field-hint">
-            {lastSync
-              ? `Last completed sync: ${new Date(lastSync).toLocaleString()}`
-              : 'No completed sync yet.'}{' '}
-            Reconnect after reloading the website.
-          </p>
-          {email.error && (
-            <p role="alert" className="notice notice-error">
-              {email.error}
-            </p>
-          )}
-          {email.message && (
-            <p role="status" className="notice">
-              {email.message}
-            </p>
-          )}
-          <p className="field-hint">
-            The prototype discovers up to 100 matching threads from the last 180
-            days and refreshes previously tracked threads. Review is manual;
-            some correspondence may not match these keywords.
-          </p>
-          <a
-            className="small-link"
-            href="https://myaccount.google.com/permissions"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Manage Google account access <ArrowUpRight size={13} />
-          </a>
-        </div>
-      </section>
+      <EmailConnections workspace={workspace} />
       <section className="panel settings-panel">
         <div className="panel-heading">
           <div className="settings-title">
