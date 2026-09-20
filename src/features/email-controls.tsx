@@ -6,6 +6,7 @@ import { PROVIDER_NAMES, useEmail } from './email-context';
 import { gmailConfigured } from './gmail';
 import { outlookConfigured } from './email/outlook-auth';
 import type { Workspace } from './workspace';
+import { EmailConnectionGuide, EmailProviderSetup } from './email-help';
 export function UpdateControls() {
   const email = useEmail();
   return (
@@ -49,6 +50,7 @@ export function EmailConnections({ workspace }: { workspace: Workspace }) {
   const email = useEmail();
   return (
     <>
+      <EmailConnectionGuide />
       {EMAIL_PROVIDERS.map((provider) => {
         const name = PROVIDER_NAMES[provider];
         const configured =
@@ -89,7 +91,8 @@ export function EmailConnections({ workspace }: { workspace: Workspace }) {
               {!configured && (
                 <p className="notice">
                   {name} connection is not configured for this website. CVs and
-                  manual applications are available.
+                  manual applications are available. Open {name} setup for the
+                  website owner below for instructions.
                 </p>
               )}
               <div className="settings-actions">
@@ -117,6 +120,7 @@ export function EmailConnections({ workspace }: { workspace: Workspace }) {
                   : 'No completed update for this connection yet.'}{' '}
                 Reconnect after reloading or session expiry.
               </p>
+              <EmailProviderSetup provider={provider} />
             </div>
           </section>
         );

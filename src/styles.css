@@ -1010,6 +1010,44 @@ textarea {
   font-size: 10px;
   white-space: nowrap;
 }
+.email-help {
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.email-help ol,
+.email-help ul {
+  padding-left: 22px;
+  margin: 12px 0;
+  list-style: revert;
+}
+.email-help li + li {
+  margin-top: 8px;
+}
+.email-help details,
+.provider-setup {
+  margin-top: 18px;
+  border-top: 1px solid #e0e8d6;
+  padding-top: 14px;
+}
+.email-help summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.email-help summary:focus-visible {
+  outline: 2px solid #537b49;
+  outline-offset: 4px;
+}
+.email-help a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.email-help p {
+  margin-top: 12px;
+}
+.email-help code {
+  font-size: 0.95em;
+}
 .connection-pill > span {
   height: 5px;
   width: 5px;
