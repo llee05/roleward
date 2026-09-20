@@ -7,7 +7,7 @@ import {
 } from '../../domain/email';
 import { db } from '../../persistence/local-database';
 import { ingestEmail } from '../../persistence/repository';
-import { extractApplication } from './extract';
+import { extractApplication, isSeekSuggestion } from './extract';
 import type { EmailAdapter } from './provider';
 export type UpdateResult = { scanned: number; added: number; review: number };
 /** Browser script called by Update; no credentials or irrelevant message bodies are persisted. */
@@ -46,6 +46,9 @@ export async function updateMailbox(
     seen.add(email.id);
     scanned++;
     progress(`Scanned ${scanned} emails from the past three months…`);
+    // A null extraction can still attach to a known conversation. Suggestions
+    // must also be excluded from that path and the deferred reply pass.
+    if (isSeekSuggestion(email)) continue;
     const extraction = extractApplication(email);
     signal.throwIfAborted();
     const result = await ingestEmail(email, extraction);
@@ -77,7 +80,8 @@ export async function updateMailbox(
         'Email association changed during Update. Retry the scan.',
       );
     signal.throwIfAborted();
-    if (inRange(email)) await ingestEmail(email, null);
+    if (inRange(email) && !isSeekSuggestion(email))
+      await ingestEmail(email, null);
   }
   signal.throwIfAborted();
   await db.settings.put({

@@ -8,6 +8,37 @@ const receipt =
   /\b(?:thank(?:s| you) for (?:applying|your (?:job )?application)|we(?:'ve| have)? received your (?:job )?application|your (?:job )?application (?:has been |was )?(?:received|submitted)|application (?:successfully submitted|received|confirmation))\b/i;
 const employment =
   /\b(?:position|role|job|career|recruit(?:ing|ment|er)|hiring|candidate|candidacy|resume|résumé|cv)\b/i;
+const outcome =
+  /\b(?:unfortunately|unsuccessful|rejected|not (?:be )?(?:moving|proceeding) forward|interview invitation|(?:schedule|scheduled|invite you (?:to|for)) (?:an? |your )?interview|pleased to offer)\b/i;
+const seekRecommendation =
+  /\b(?:new jobs? for|jobs? (?:suggestions?|recommendations?|matches|alerts?)|(?:suggested|recommended) jobs?|(?:new |more )?jobs? (?:for you|you (?:might|may) (?:like|be interested in)|(?:matching|matched to) your (?:profile|preferences|search))|(?:roles?|opportunities) (?:for you|you (?:might|may) like))\b/i;
+
+function unquotedBody(text: string) {
+  return text
+    .split(/\n(?:On .+wrote:|From:|[- ]*Original Message[- ]*)/i)[0]
+    .split('\n')
+    .filter((line) => !/^\s*>/.test(line))
+    .join('\n');
+}
+
+/** Exclude SEEK recommendations without blocking all correspondence from SEEK. */
+export function isSeekSuggestion(email: Email): boolean {
+  const address = (
+    email.sender.match(/<([^<>]+)>/)?.[1] ?? email.sender
+  ).trim();
+  if (
+    !/^[^\s@<>]+@(?:[a-z0-9-]+\.)*seek\.(?:com\.au|co\.nz|com)$/i.test(address)
+  )
+    return false;
+  if (seekRecommendation.test(email.subject)) return true;
+  const body = unquotedBody(email.text);
+  // A receipt or application outcome can include a recommendations footer.
+  return (
+    seekRecommendation.test(body) &&
+    !receipt.test(`${email.subject}\n${body}`) &&
+    !outcome.test(`${email.subject}\n${body}`)
+  );
+}
 function clean(value = '') {
   return value
     .trim()
@@ -59,24 +90,21 @@ function explicitDate(text: string, receivedAt: string) {
 }
 /** Conservative English template rules. Email text is never executed or sent to an AI service. */
 export function extractApplication(email: Email): Extraction | null {
-  if (email.outgoing || /^(?:fw|fwd):/i.test(email.subject)) return null;
+  if (
+    email.outgoing ||
+    /^(?:fw|fwd):/i.test(email.subject) ||
+    isSeekSuggestion(email)
+  )
+    return null;
   // Avoid classifying an old quoted receipt as a new confirmation.
-  const body = email.text
-    .split(/\n(?:On .+wrote:|From:|[- ]*Original Message[- ]*)/i)[0]
-    .split('\n')
-    .filter((line) => !/^\s*>/.test(line))
-    .join('\n');
+  const body = unquotedBody(email.text);
   const text = `${email.subject}\n${body}`;
   if (nonJob.test(text)) return null;
-  const outcome =
-    /\b(?:unfortunately|unsuccessful|rejected|not (?:be )?(?:moving|proceeding) forward|interview invitation|(?:schedule|scheduled|invite you (?:to|for)) (?:an? |your )?interview|pleased to offer)\b/i.test(
-      body,
-    );
   const isReceipt =
     (receipt.test(body) ||
       (!/^re\s*:/i.test(email.subject) && receipt.test(email.subject))) &&
     !solicitation.test(text) &&
-    !outcome;
+    !outcome.test(body);
   const related =
     employment.test(text) &&
     /\b(?:your application|interview|job offer|candidacy|unfortunately|not be moving forward)\b/i.test(
