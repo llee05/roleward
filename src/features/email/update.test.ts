@@ -30,6 +30,57 @@ function adapter(emails: Email[]): EmailAdapter {
     getEmail: vi.fn(async (_account, id) => emails.find((e) => e.id === id)!),
   };
 }
+it.each(['gmail', 'outlook'] as const)(
+  'excludes SEEK suggestions from new and known conversations on repeated %s updates',
+  async (provider) => {
+    const receipt = {
+      ...email,
+      provider,
+      sender: 'SEEK <applications@seek.com.au>',
+    };
+    const suggestion = {
+      ...receipt,
+      id: 'suggestion-before',
+      subject: 'Jobs for you',
+      text: 'Improve your application for the Designer role at Acme.',
+    };
+    const api = {
+      ...adapter([
+        suggestion,
+        { ...suggestion, id: 'new-suggestion', threadId: 'suggestions' },
+        receipt,
+        { ...suggestion, id: 'suggestion-after' },
+        {
+          ...receipt,
+          id: 'reply',
+          subject: 'Next steps',
+          text: 'Are you free Tuesday?',
+        },
+      ]),
+      provider,
+    };
+    for (const added of [1, 0]) {
+      expect(
+        await updateMailbox(
+          api,
+          email.account,
+          new AbortController().signal,
+          () => {},
+          range,
+        ),
+      ).toEqual({ scanned: 5, added, review: 0 });
+      expect(
+        (await db.messages.toArray()).map((message) => message.id).sort(),
+      ).toEqual([
+        `${provider}:me@example.com:receipt`,
+        `${provider}:me@example.com:reply`,
+      ]);
+      expect(await db.applications.count()).toBe(1);
+      expect(await db.sources.count()).toBe(1);
+      expect(api.getEmail).not.toHaveBeenCalled();
+    }
+  },
+);
 it('filters the exact window, deduplicates messages, and ignores unrelated mail', async () => {
   const api = adapter([
     email,

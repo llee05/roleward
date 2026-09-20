@@ -151,6 +151,14 @@ Outgoing emails cannot create applications. The parser can miss unusual template
 non-English messages, or misidentify fields; it does not infer interview/rejection
 status automatically.
 
+Before extraction or conversation attachment, Update excludes recognized SEEK
+recommendations from sender addresses at `seek.com.au`, `seek.co.nz`, `seek.com`,
+and their subdomains. It matches suggestion subjects (such as “jobs for you” and
+“jobs matching your profile”) or body wording without receipt/outcome evidence.
+Quoted text is excluded from body matching. This is fixture-tested filtering,
+not a blanket block on SEEK; unfamiliar templates can still need review.
+Already imported records are retained.
+
 When a receipt has no explicit submission date, use its received calendar day as
 a labelled estimate. The earliest receipt estimate is preferred; later explicit evidence may refine it
 until the user edits the record. Other replies retain an unknown submission date. Users can

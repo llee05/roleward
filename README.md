@@ -100,6 +100,10 @@ result pages within the date window and processes emails locally:
   existing application. Separate conversations can be merged manually.
 - Repeat updates preserve edits, avoid duplicate message imports, and respect
   deleted applications. Cancel or failures keep records already imported.
+- Recognized SEEK job suggestions are skipped, including suggestions in tracked
+  conversations. This filter applies to future updates; it does not remove
+  previously imported records. SEEK confirmations and replies remain eligible
+  for the usual extraction rules.
 
 The [Update script](src/features/email/update.ts) uses conservative English
 patterns, not an AI service. It can miss unusual templates or misidentify fields;

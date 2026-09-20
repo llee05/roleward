@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Email } from '../../domain/email';
 import { scanWindow } from '../../domain/email';
-import { extractApplication } from './extract';
+import { extractApplication, isSeekSuggestion } from './extract';
 const email: Email = {
   provider: 'gmail',
   account: 'me@example.com',
@@ -14,6 +14,84 @@ const email: Email = {
   outgoing: false,
 };
 describe('application extraction', () => {
+  it.each([
+    'Jobs for you',
+    '12 new jobs for Software Engineer',
+    'Jobs you might like',
+    'Jobs you may be interested in',
+    'Jobs matching your profile',
+    'Your job matches',
+    'Your SEEK job suggestions',
+    'Opportunities for you',
+  ])('excludes SEEK recommendations: %s', (subject) => {
+    const suggestion = {
+      ...email,
+      sender: 'SEEK <updates@email.seek.com.au>',
+      subject,
+      text: 'Improve your application for the Designer role at Acme.\nCompany: Acme\nRole: Designer',
+    };
+    expect(isSeekSuggestion(suggestion)).toBe(true);
+    expect(extractApplication(suggestion)).toBeNull();
+  });
+  it.each([
+    'alerts@seek.com.au',
+    'SEEK <alerts@seek.co.nz>',
+    'SEEK <ALERTS@EMAIL.SEEK.COM>',
+  ])('filters recommendations in the body from %s', (sender) => {
+    expect(
+      extractApplication({
+        ...email,
+        sender,
+        subject: 'Your weekly SEEK update',
+        text: 'Jobs matching your preferences\nImprove your application for the Designer role.',
+      }),
+    ).toBeNull();
+  });
+  it.each([
+    'SEEK <careers@example.com>',
+    'alerts@notseek.com.au',
+    'alerts@seek.com.au.example.com',
+  ])(
+    'does not treat a display name or lookalike domain as SEEK: %s',
+    (sender) => {
+      const message = { ...email, sender, subject: 'Jobs for you' };
+      expect(isSeekSuggestion(message)).toBe(false);
+      expect(extractApplication(message)).toMatchObject({
+        role: 'Product Designer',
+      });
+    },
+  );
+  it('keeps SEEK receipts and interview replies with suggestion footers', () => {
+    const receipt = {
+      ...email,
+      sender: 'SEEK <applications@seek.com.au>',
+      text: `${email.text}\nMore jobs you might like`,
+    };
+    expect(extractApplication(receipt)).toMatchObject({
+      company: 'Acme',
+      confirmed: true,
+    });
+    expect(
+      extractApplication({
+        ...receipt,
+        subject: 'Interview invitation',
+        text: 'We invite you to an interview for the Designer role at Acme.\nMore jobs you might like',
+      }),
+    ).toMatchObject({ company: 'Acme', confirmed: false, appliedAt: null });
+  });
+  it('does not use a quoted recommendation to discard a SEEK reply', () => {
+    const reply = {
+      ...email,
+      sender: 'SEEK <applications@seek.com.au>',
+      subject: 'Your application for Designer at Acme',
+      text: 'Your application for the Designer role is being considered.\nOn Monday, SEEK wrote:\nJobs for you',
+    };
+    expect(isSeekSuggestion(reply)).toBe(false);
+    expect(extractApplication(reply)).toMatchObject({
+      company: 'Acme',
+      confirmed: false,
+    });
+  });
   it('recognizes a receipt and extracts employer, role and explicit submission date', () => {
     expect(extractApplication(email)).toMatchObject({
       company: 'Acme',
