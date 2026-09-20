@@ -25,7 +25,12 @@ import { metrics } from '../domain/metrics';
 import type { Application, Cv } from '../domain/models';
 import { STATUS_LABELS } from '../domain/application-statuses';
 import { displayDate, errorMessage } from '../lib/utils';
-import { removeCv, renameCv, uploadCv } from '../persistence/repository';
+import {
+  clearReviewQueue,
+  removeCv,
+  renameCv,
+  uploadCv,
+} from '../persistence/repository';
 import { ApplicationEditor } from './application-editor';
 import type { Workspace } from './workspace';
 import { useEmail } from './email-context';
@@ -362,10 +367,39 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
 export function Applications({ workspace }: { workspace: Workspace }) {
   const [selected, setSelected] = useState<Application | 'new' | null>(null);
   const [tab, setTab] = useState<'tracked' | 'review'>('tracked');
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState('');
+  const [clearMessage, setClearMessage] = useState('');
+  const email = useEmail();
   const confirmed = workspace.applications
     .filter((a) => a.confirmed)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const pending = workspace.applications.filter((a) => !a.confirmed);
+  async function clearReview() {
+    if (clearing || email.busy || !pending.length) return;
+    const ids = pending.map((application) => application.id);
+    if (
+      !window.confirm(
+        `Clear ${ids.length} review ${ids.length === 1 ? 'item' : 'items'} and their saved emails from this browser? Future updates will ignore these conversations. Tracked applications, CVs, and messages in your mailbox will be kept. This cannot be undone.`,
+      )
+    )
+      return;
+    setClearing(true);
+    setClearError('');
+    setClearMessage('');
+    try {
+      const count = await clearReviewQueue(ids);
+      setClearMessage(
+        `Cleared ${count} review ${count === 1 ? 'item' : 'items'}.`,
+      );
+    } catch (error) {
+      setClearError(
+        `Could not clear the review queue. No items were removed. ${errorMessage(error)}`,
+      );
+    } finally {
+      setClearing(false);
+    }
+  }
   return (
     <>
       <PageHeading
@@ -395,6 +429,16 @@ export function Applications({ workspace }: { workspace: Workspace }) {
           Email review <span>{pending.length}</span>
         </button>
       </div>
+      {clearError && (
+        <p role="alert" className="notice notice-error">
+          {clearError}
+        </p>
+      )}
+      {clearMessage && (
+        <p role="status" className="notice">
+          {clearMessage}
+        </p>
+      )}
       <section className="panel">
         {tab === 'tracked' ? (
           confirmed.length ? (
@@ -423,6 +467,16 @@ export function Applications({ workspace }: { workspace: Workspace }) {
               Email threads need your review before they count as applications.
               Attach a thread to an existing application if it is a follow-up.
             </div>
+            <div className="settings-actions">
+              <Button
+                variant="danger"
+                disabled={clearing || email.busy}
+                onClick={() => void clearReview()}
+              >
+                <Trash2 size={16} />
+                {clearing ? 'Clearing…' : 'Clear review queue'}
+              </Button>
+            </div>
             {pending.map((a) => {
               const message = workspace.messages.find(
                 (m) => m.applicationId === a.id,
@@ -431,6 +485,7 @@ export function Applications({ workspace }: { workspace: Workspace }) {
                 <button
                   className="review-row"
                   key={a.id}
+                  disabled={clearing}
                   onClick={() => setSelected(a)}
                 >
                   <span className="empty-icon">

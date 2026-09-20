@@ -98,6 +98,10 @@ result pages within the date window and processes emails locally:
 - Ambiguous job correspondence goes to **Email review** and does not count in
   statistics until confirmed. Replies in known conversations attach to their
   existing application. Separate conversations can be merged manually.
+- **Applications → Email review → Clear review queue** removes all current
+  unreviewed items and their locally saved emails after confirmation. Future
+  updates ignore those conversations. Tracked applications, CVs, and mailbox
+  messages are kept. Clearing cannot be undone.
 - Repeat updates preserve edits, avoid duplicate message imports, and respect
   deleted applications. Cancel or failures keep records already imported.
 - Recognized SEEK job suggestions are skipped, including suggestions in tracked

@@ -124,6 +124,13 @@ updates statistics, and preserves all CV versions. Retain enough sync exclusion
 information to prevent the next sync from silently recreating a deleted record.
 Deleting local records never deletes messages from the user's mailbox.
 
+Email review offers a **Clear review queue** action with a confirmation that
+states the item count and permanent local removal. Clear only the selected
+snapshot of unreviewed candidates and their local emails, atomically; retain
+conversation exclusions so later updates do not recreate them. Preserve tracked
+applications, CVs, and mailbox messages. Items confirmed since the snapshot and
+newly arrived candidates are kept. A failed clear leaves the queue intact.
+
 ## Application records and statuses
 
 An application stores a stable ID, company and role where known, submission date

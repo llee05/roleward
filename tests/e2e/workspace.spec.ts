@@ -290,6 +290,127 @@ test('Gmail and Outlook Update extract applications, preserve edits and avoid du
   ).toBe(true);
 });
 
+test('clearing email review can be cancelled and stays cleared after reload and update', async ({
+  page,
+}) => {
+  await page.route('https://gmail.googleapis.com/**', (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/profile'))
+      return route.fulfill({ json: { emailAddress: 'test@example.com' } });
+    if (url.pathname.endsWith('/messages'))
+      return route.fulfill({
+        json: {
+          messages: [
+            { id: 'receipt' },
+            { id: 'review-one' },
+            { id: 'review-two' },
+          ],
+        },
+      });
+    const id = url.pathname.split('/').at(-1)!;
+    const receipt = id === 'receipt';
+    return route.fulfill({
+      json: {
+        id,
+        threadId: id,
+        internalDate: String(Date.now() - 86400000),
+        payload: {
+          headers: [
+            {
+              name: 'Subject',
+              value: receipt
+                ? 'Thank you for applying to Acme'
+                : `Interview invitation ${id}`,
+            },
+          ],
+          mimeType: 'text/plain',
+          body: {
+            data: Buffer.from(
+              receipt
+                ? 'We received your application for the Designer role.'
+                : 'Your application for the Engineer role at Contoso has progressed.',
+            ).toString('base64url'),
+          },
+        },
+      },
+    });
+  });
+  await page.goto('#/settings');
+  await page
+    .getByRole('button', { name: 'Connect Gmail', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Update', exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: /^Applications/ })
+    .click();
+  await page
+    .getByRole('button', { name: 'Email review 2', exact: true })
+    .click();
+  page.once('dialog', async (dialog) => {
+    expect(dialog.message()).toContain('Clear 2 review items');
+    expect(dialog.message()).toContain(
+      'Future updates will ignore these conversations',
+    );
+    await dialog.dismiss();
+  });
+  await page
+    .getByRole('button', { name: 'Clear review queue', exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: /Interview invitation/ }),
+  ).toHaveCount(2);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page
+    .getByRole('button', { name: 'Clear review queue', exact: true })
+    .click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Cleared 2 review items.' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'All caught up' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Clear review queue', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Tracked 1', exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.reload();
+  await page
+    .getByRole('button', { name: 'Email review 0', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'All caught up' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Go to email connection' }).click();
+  await page
+    .getByRole('button', { name: 'Connect Gmail', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Update', exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: /^Applications/ })
+    .click();
+  await expect(
+    page.getByRole('button', { name: 'Email review 0', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Tracked 1', exact: true }),
+  ).toBeVisible();
+});
+
 test('partial update preserves imports and keeps ambiguous replies out of statistics', async ({
   page,
 }) => {
