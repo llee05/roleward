@@ -57,6 +57,29 @@ export async function removeApplication(id: string) {
     },
   );
 }
+/** Clear only the reviewed snapshot, rechecking confirmation state atomically. */
+export async function clearReviewQueue(ids: string[]): Promise<number> {
+  return db.transaction(
+    'rw',
+    db.applications,
+    db.messages,
+    db.sources,
+    async () => {
+      const candidates = await db.applications.bulkGet([...new Set(ids)]);
+      const pendingIds = candidates
+        .filter((application) => application && !application.confirmed)
+        .map((application) => application!.id);
+      if (!pendingIds.length) return 0;
+      await db.sources
+        .where('applicationId')
+        .anyOf(pendingIds)
+        .modify({ applicationId: null });
+      await db.messages.where('applicationId').anyOf(pendingIds).delete();
+      await db.applications.bulkDelete(pendingIds);
+      return pendingIds.length;
+    },
+  );
+}
 export async function mergeApplication(from: string, into: string) {
   await db.transaction(
     'rw',
