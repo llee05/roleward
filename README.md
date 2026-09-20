@@ -62,6 +62,11 @@ these local features.
 
 ## Optional email setup
 
+The **Workspace** page includes a connection walkthrough, troubleshooting, and
+expandable **Gmail/Outlook setup for the website owner** instructions. The setup
+instructions show the current site's Google origin and Outlook redirect URI,
+plus local development and GitHub Pages configuration steps.
+
 Copy `.env.example` to `.env.local`. Configure either provider or both, then
 restart Vite. Client IDs are public; never add a client secret.
 

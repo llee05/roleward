@@ -7,6 +7,57 @@ test.beforeEach(async ({ page }) => {
     }),
   );
 });
+test('Workspace email help supports keyboard setup, current URLs, and application navigation', async ({
+  page,
+}) => {
+  await page.goto('#/settings');
+  const guide = page.getByRole('region', { name: 'How to connect your email' });
+  await expect(guide).toBeVisible();
+
+  for (const provider of ['Gmail', 'Outlook']) {
+    const setup = page.locator('details').filter({
+      has: page.locator('summary', {
+        hasText: `${provider} setup for the website owner`,
+      }),
+    });
+    await expect(setup).not.toHaveAttribute('open');
+    await setup.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(setup).toHaveAttribute('open', '');
+    const expectedUrl =
+      provider === 'Gmail'
+        ? new URL(page.url()).origin
+        : `${new URL(page.url()).origin}/roleward/outlook-redirect.html`;
+    await expect(
+      setup.locator('code').filter({ hasText: expectedUrl }).first(),
+    ).toHaveText(expectedUrl);
+    await expect(setup.getByText('.env.local', { exact: true })).toBeVisible();
+    await expect(
+      setup.getByRole('link', { name: /Official .* app registration guide/ }),
+    ).toHaveAttribute('href', /^https:\/\//);
+  }
+
+  await guide
+    .locator('summary', { hasText: 'Trouble connecting or updating?' })
+    .click();
+  await expect(
+    guide.getByText('Popup blocked or access denied:', { exact: true }),
+  ).toBeVisible();
+  await guide
+    .locator('summary', { hasText: 'What happens when I disconnect?' })
+    .click();
+  await expect(
+    guide.getByText(/Outlook disconnect does not revoke Microsoft consent/),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+
+  await guide.getByRole('link', { name: 'Applications', exact: true }).click();
+  await expect(page).toHaveURL(/#\/applications$/);
+});
 test('CV versions, application edits, metrics, and reload persist locally', async ({
   page,
 }) => {
@@ -33,7 +84,10 @@ test('CV versions, application edits, metrics, and reload persist locally', asyn
     .first()
     .click();
   expect((await download).suggestedFilename()).toBe('cv.pdf');
-  await page.getByRole('link', { name: /^Applications/ }).click();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: /^Applications/ })
+    .click();
   await page
     .getByRole('button', { name: 'Add application', exact: true })
     .click();
@@ -76,7 +130,10 @@ test('CV versions, application edits, metrics, and reload persist locally', asyn
     page.getByRole('heading', { name: 'Design CV', exact: true }),
   ).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'General CV' })).toBeVisible();
-  await page.getByRole('link', { name: /^Applications/ }).click();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: /^Applications/ })
+    .click();
   await page.getByRole('button', { name: 'Edit Acme Studio' }).click();
   await expect(page.getByLabel('CV version used')).toHaveValue('');
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -169,7 +226,10 @@ test('Gmail and Outlook Update extract applications, preserve edits and avoid du
   await expect(page.getByRole('status')).toContainText(
     'Outlook: scanned 2 emails, added 1 applications',
   );
-  await page.getByRole('link', { name: /^Applications/ }).click();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: /^Applications/ })
+    .click();
   await expect(page.getByRole('button', { name: 'Tracked 2' })).toBeVisible();
   await page.getByRole('button', { name: 'Edit Contoso' }).click();
   await expect(page.getByLabel('Role', { exact: true })).toHaveValue(
@@ -281,7 +341,10 @@ test('partial update preserves imports and keeps ambiguous replies out of statis
   await expect(
     page.getByRole('button', { name: 'Connect Gmail', exact: true }),
   ).toBeEnabled();
-  await page.getByRole('link', { name: /^Applications/ }).click();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: /^Applications/ })
+    .click();
   await page.getByRole('button', { name: 'Email review 1' }).click();
   await page.getByRole('button', { name: /Interview invitation/ }).click();
   await expect(page.getByLabel('Company', { exact: true })).toHaveValue(
