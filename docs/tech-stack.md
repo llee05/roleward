@@ -185,7 +185,7 @@ the other connected mailbox. Repeating an update safely retries the date window.
 Use `VITE_GOOGLE_CLIENT_ID` and `VITE_MICROSOFT_CLIENT_ID` for public OAuth client
 identifiers. Supply them via
 an ignored local environment file and a GitHub Actions repository variable for
-the production build. A missing ID disables email connection with setup guidance;
+the production build. A missing ID disables email connection with an explanation;
 the local CV library and existing data still work.
 
 Every `VITE_*` value is exposed in the built site. Never place client secrets,

@@ -7,39 +7,18 @@ test.beforeEach(async ({ page }) => {
     }),
   );
 });
-test('Workspace email help supports keyboard setup, current URLs, and application navigation', async ({
+test('Workspace email help supports keyboard troubleshooting and application navigation', async ({
   page,
 }) => {
   await page.goto('#/settings');
   const guide = page.getByRole('region', { name: 'How to connect your email' });
   await expect(guide).toBeVisible();
 
-  for (const provider of ['Gmail', 'Outlook']) {
-    const setup = page.locator('details').filter({
-      has: page.locator('summary', {
-        hasText: `${provider} setup for the website owner`,
-      }),
-    });
-    await expect(setup).not.toHaveAttribute('open');
-    await setup.locator('summary').focus();
-    await page.keyboard.press('Enter');
-    await expect(setup).toHaveAttribute('open', '');
-    const expectedUrl =
-      provider === 'Gmail'
-        ? new URL(page.url()).origin
-        : `${new URL(page.url()).origin}/roleward/outlook-redirect.html`;
-    await expect(
-      setup.locator('code').filter({ hasText: expectedUrl }).first(),
-    ).toHaveText(expectedUrl);
-    await expect(setup.getByText('.env.local', { exact: true })).toBeVisible();
-    await expect(
-      setup.getByRole('link', { name: /Official .* app registration guide/ }),
-    ).toHaveAttribute('href', /^https:\/\//);
-  }
-
+  await expect(page.getByText(/setup for the website owner/)).toHaveCount(0);
   await guide
     .locator('summary', { hasText: 'Trouble connecting or updating?' })
-    .click();
+    .focus();
+  await page.keyboard.press('Enter');
   await expect(
     guide.getByText('Popup blocked or access denied:', { exact: true }),
   ).toBeVisible();

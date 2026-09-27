@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, test, vi } from 'vitest';
 import { EmailProvider } from './email-context';
@@ -14,7 +8,7 @@ vi.mock('./gmail', () => ({ gmailConfigured: false }));
 vi.mock('./email/outlook-auth', () => ({ outlookConfigured: false }));
 afterEach(cleanup);
 
-test('unconfigured providers explain how to enable connection without authorizing a mailbox', () => {
+test('unconfigured providers explain availability without website-owner setup', () => {
   render(
     <MemoryRouter>
       <EmailProvider>
@@ -31,29 +25,17 @@ test('unconfigured providers explain how to enable connection without authorizin
     </MemoryRouter>,
   );
 
-  for (const [provider, variable] of [
-    ['Gmail', 'VITE_GOOGLE_CLIENT_ID'],
-    ['Outlook', 'VITE_MICROSOFT_CLIENT_ID'],
-  ]) {
+  for (const provider of ['Gmail', 'Outlook']) {
     expect(
       screen.getByRole('button', { name: `Connect ${provider}` }),
     ).toBeDisabled();
     expect(
       screen.getByText(new RegExp(`${provider} connection is not configured`)),
-    ).toHaveTextContent(
-      `Open ${provider} setup for the website owner below for instructions.`,
-    );
-    const summary = screen.getByText(
-      `${provider} setup for the website owner`,
-      { exact: true },
-    );
-    fireEvent.click(summary);
-    const setup = summary.closest('details')!;
-    expect(setup).toHaveAttribute('open');
-    expect(within(setup).getAllByText(variable).length).toBeGreaterThan(0);
-    expect(
-      within(setup).getByText('.env.local', { exact: true }),
-    ).toBeVisible();
+    ).toHaveTextContent('CVs and manual applications are available.');
   }
+  expect(
+    screen.queryByText(/setup for the website owner/),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/VITE_.*_CLIENT_ID/)).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Update' })).toBeDisabled();
 });

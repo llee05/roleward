@@ -1024,8 +1024,7 @@ textarea {
 .email-help li + li {
   margin-top: 8px;
 }
-.email-help details,
-.provider-setup {
+.email-help details {
   margin-top: 18px;
   border-top: 1px solid #e0e8d6;
   padding-top: 14px;
@@ -1044,9 +1043,6 @@ textarea {
 }
 .email-help p {
   margin-top: 12px;
-}
-.email-help code {
-  font-size: 0.95em;
 }
 .connection-pill > span {
   height: 5px;
