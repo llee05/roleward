@@ -1,4 +1,10 @@
-import { Component, useEffect, useRef, type ReactNode } from 'react';
+import {
+  Component,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from 'react';
 import {
   HashRouter,
   Link,
@@ -24,6 +30,7 @@ import { EmailProvider, useEmail } from './features/email-context';
 import { useWorkspace } from './features/workspace';
 import { Button } from './components/ui/button';
 import { ROUTES } from './routing/routes';
+import { getTheme } from './domain/theme';
 const navigation = [
   { path: ROUTES.dashboard, label: 'Overview', icon: LayoutDashboard },
   { path: ROUTES.applications, label: 'Applications', icon: BriefcaseBusiness },
@@ -32,6 +39,10 @@ const navigation = [
 ];
 function Shell() {
   const workspace = useWorkspace();
+  const theme = getTheme(workspace?.settings);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
   const location = useLocation();
   const email = useEmail();
   const main = useRef<HTMLElement>(null);

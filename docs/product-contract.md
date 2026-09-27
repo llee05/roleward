@@ -190,7 +190,7 @@ application changes the status counts, not the total or its submission day.
 | `/documents`    | Manage the CV version library, including uploads before any applications exist.                |
 | `/applications` | Review application details and replies, correct fields, and select the CV version used.        |
 | `/dashboard`    | Show total applications, applications per day, and current status counts.                      |
-| `/settings`     | Connect or disconnect email, trigger sync, and explain connection and local-storage state.     |
+| `/settings`     | Choose appearance, connect or disconnect email, trigger sync, and explain local storage.       |
 
 These are logical paths inside React Router's `HashRouter`: the deployed
 application route is `/roleward/#/applications`, for example. Hash links must
@@ -198,6 +198,11 @@ survive refresh and direct navigation on Pages. Gmail authorization uses a popup
 and browser callback. Outlook uses a popup with a separate static redirect bridge;
 neither provider needs a server callback endpoint. `/jobs` and `/jobs/[id]`
 are not v1 routes. See the [routing design](tech-stack.md#routing-and-deployment).
+
+Workspace settings include a keyboard-accessible **Dark mode** switch. New
+workspaces start in light mode. The choice applies to every page and dialog and
+persists in this browser across navigation and reloads. Failed preference saves
+keep the previous mode and display a retryable error.
 
 Each data page distinguishes loading, empty, populated, and error states. An empty
 CV library offers upload; an empty tracker offers email connection or sync; an

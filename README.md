@@ -60,6 +60,10 @@ add an application, choose the version used, and visit Overview to see statistic
 Data persists when you reload in the same browser. No email setup is needed for
 these local features.
 
+Open **Workspace → Appearance → Dark mode** to switch between light and dark
+colors. The choice applies throughout the app and is saved in this browser
+across page navigation and reloads. New workspaces start in light mode.
+
 ## Optional email setup
 
 The **Workspace** page includes a connection walkthrough and troubleshooting

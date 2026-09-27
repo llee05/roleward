@@ -54,6 +54,11 @@ use transactions for related changes. CV upload means copying a file into that
 database; personal files and messages never enter the Git repository or deployment
 artifact. No cloud database or object-storage service is needed.
 
+The settings table also stores the light/dark appearance preference. Writes are
+validated by the preference repository; the reactive workspace applies the saved
+theme to the document root. Shared CSS color variables cover pages, forms, status
+badges, and dialogs, with `color-scheme` matching native browser controls.
+
 Browser storage belongs to an origin and profile, not a repository URL path. Other
 Pages projects under the same `<owner>.github.io` hostname share that origin; a
 path or database name is not an isolation boundary. Moving to a different origin

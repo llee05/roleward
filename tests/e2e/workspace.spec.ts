@@ -37,9 +37,69 @@ test('Workspace email help supports keyboard troubleshooting and application nav
   await guide.getByRole('link', { name: 'Applications', exact: true }).click();
   await expect(page).toHaveURL(/#\/applications$/);
 });
-test('CV versions, application edits, metrics, and reload persist locally', async ({
+test('dark mode toggles by keyboard and persists across navigation and reload', async ({
   page,
 }) => {
+  await page.goto('#/settings');
+  const toggle = page.getByRole('switch', { name: 'Dark mode' });
+  await expect(toggle).not.toBeChecked();
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'light');
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).toBeChecked();
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(page.getByRole('region', { name: 'Appearance' })).toHaveCSS(
+    'background-color',
+    'rgb(28, 41, 35)',
+  );
+
+  const navigation = page.getByRole('navigation', { name: 'Main navigation' });
+  await navigation.getByRole('link', { name: /^Applications/ }).click();
+  await page
+    .getByRole('button', { name: 'Add application', exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCSS(
+    'background-color',
+    'rgb(34, 49, 41)',
+  );
+  await expect(page.getByLabel('Company', { exact: true })).toHaveCSS(
+    'background-color',
+    'rgb(28, 41, 35)',
+  );
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await navigation.getByRole('link', { name: 'Overview' }).click();
+  await page.reload();
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(page.locator('.stat-card').first()).toHaveCSS(
+    'background-color',
+    'rgb(28, 41, 35)',
+  );
+  await navigation
+    .getByRole('link', { name: 'Workspace', exact: true })
+    .click();
+  await expect(toggle).toBeChecked();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).not.toBeChecked();
+  await page.reload();
+  await expect(toggle).not.toBeChecked();
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'light');
+  await expect(page.getByRole('region', { name: 'Appearance' })).toHaveCSS(
+    'background-color',
+    'rgb(255, 255, 255)',
+  );
+});
+test('CV versions, application edits, metrics, and reload persist locally in dark mode', async ({
+  page,
+}) => {
+  await page.goto('#/settings');
+  await page.getByRole('switch', { name: 'Dark mode' }).click();
+  await expect(page.getByRole('switch', { name: 'Dark mode' })).toBeChecked();
   await page.goto('#/documents');
   await page.getByLabel('Choose CV file').setInputFiles({
     name: 'cv.pdf',

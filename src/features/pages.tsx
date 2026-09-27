@@ -32,6 +32,7 @@ import {
   uploadCv,
 } from '../persistence/repository';
 import { ApplicationEditor } from './application-editor';
+import { AppearanceSettings } from './appearance-settings';
 import type { Workspace } from './workspace';
 import { useEmail } from './email-context';
 import { EmailConnections, UpdateControls } from './email-controls';
@@ -775,8 +776,9 @@ export function Settings({ workspace }: { workspace: Workspace }) {
       <PageHeading
         eyebrow="MAKE YOURSELF AT HOME"
         title="Your workspace"
-        description="Connect your inbox. Keep your information close."
+        description="Choose your appearance. Connect your inbox. Keep your information close."
       />
+      <AppearanceSettings settings={workspace.settings} />
       <EmailConnections workspace={workspace} />
       <section className="panel settings-panel">
         <div className="panel-heading">
